@@ -2,6 +2,7 @@ use std::cmp::min;
 use std::ops::{Add, Div};
 
 use nannou::prelude::*;
+use nannou::state::Mouse;
 
 fn main() {
     nannou::app(model)
@@ -9,8 +10,8 @@ fn main() {
         .run();
 }
 
-const GRID_WIDTH: usize = 100;
-const GRID_HEIGHT: usize = 100;
+const GRID_WIDTH: usize = 200;
+const GRID_HEIGHT: usize = 200;
 const COLORS: [[u8; 3]; 5] = [
     [255, 255, 255],
     [49, 53, 82],
@@ -88,6 +89,7 @@ impl Grid {
 struct Model {
     fps: f64,
     counter: usize,
+    spawn: bool,
     grid: Grid,
 }
 
@@ -97,28 +99,44 @@ fn model(app: &App) -> Model {
         .resizable(false)
         .clear_color(WHITE)
         .mouse_pressed(mouse_pressed)
+        .mouse_released(mouse_released)
+        .mouse_moved(mouse_moved)
         .view(view)
         .build()
         .unwrap();
     // app.draw().background().color(WHITE);
 
-    let mut model = Model {
+    Model {
         fps: 0.0,
         counter: 0,
+        spawn: false,
         grid: Grid {
             buffer: DoubleBuffer::new(GRID_WIDTH, GRID_HEIGHT, 0),
             width: GRID_WIDTH,
             height: GRID_HEIGHT,
         },
-    };
-
-    model.grid.buffer.set(0, 1, 1);
-
-    model
+    }
 }
 
-fn mouse_pressed(app: &App, model: &mut Model, button: MouseButton) {
+fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
+    model.spawn = true;
+}
 
+fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
+    model.spawn = false;
+}
+
+fn mouse_moved(app: &App, model: &mut Model, point: Point2) {
+    if model.spawn {
+        let bounds = app.window_rect();
+        let pixels_per_row = bounds.h() / GRID_HEIGHT as f32;
+        let pixels_per_column = bounds.w() / GRID_WIDTH as f32;
+        let grid_row = (bounds.h() / 2.0 - point.y) / pixels_per_row;
+        let grid_column = (point.x + bounds.w() / 2.0) / pixels_per_column;
+
+        model.grid.buffer.set(grid_row as usize, grid_column as usize, 1);
+        // println!("{:?} {:?}", grid_row, grid_column);
+    }
 }
 
 fn update(_app: &App, model: &mut Model, update: Update) {
@@ -126,19 +144,21 @@ fn update(_app: &App, model: &mut Model, update: Update) {
 
     model.grid.buffer.switch();
 
-    update_grid(&mut model.grid, model.counter);
+    update_grid(&mut model.grid);
 
     model.counter += 1;
 }
 
-fn update_grid(grid: &mut Grid, counter: usize) {
-    for row in 0..grid.height {
-        for column in 0..grid.width {
+fn update_grid(grid: &mut Grid) {
+    for row in (0..grid.height).rev() {
+        for column in (0..grid.width).rev() {
             let current_value = grid.buffer.get_old(row, column);
 
-            let is_still = current_value > 0 && row == grid.height - 1;
-            let has_cell_top = if row > 0 { grid.buffer.get_old(row - 1, column) > 0 } else { false };
-            let remain = is_still || has_cell_top;
+            let reached_bottom = current_value > 0 && row == grid.height - 1;
+            let is_still = current_value > 0 && row < grid.height - 1 && grid.buffer.get_old(row + 1, column) > 0;
+            let has_cell_top = current_value == 0 && row > 0 && grid.buffer.get_old(row - 1, column) > 0;
+
+            let remain = (reached_bottom || is_still) || has_cell_top;
 
             grid.buffer.set(row, column, remain as u8);
         }
@@ -152,7 +172,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     model.grid.display(&draw, &app.window_rect());
 
-    print_fps(model);
+    // print_fps(model);
 
     draw.to_frame(app, &frame).unwrap();
 }
