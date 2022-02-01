@@ -1,4 +1,4 @@
-use std::cmp::min;
+use std::cmp::{max, min};
 use std::ops::{Add, Div};
 
 use nannou::prelude::*;
@@ -10,8 +10,8 @@ fn main() {
         .run();
 }
 
-const GRID_WIDTH: usize = 200;
-const GRID_HEIGHT: usize = 200;
+const GRID_WIDTH: usize = 100;
+const GRID_HEIGHT: usize = 100;
 const COLORS: [[u8; 3]; 5] = [
     [255, 255, 255],
     [49, 53, 82],
@@ -26,34 +26,40 @@ struct Grid {
     height: usize,
 }
 
-type Matrix = Vec<Vec<u8>>;
-
 struct DoubleBuffer {
-    buffers: [Matrix; 2],
+    buffer: Vec<Vec<[u8; 2]>>,
     current: usize,
+    fill: u8,
 }
 
 impl DoubleBuffer {
     fn new(width: usize, height: usize, fill: u8) -> Self {
-        let v0 = vec![vec![fill; width]; height];
-        let v1 = vec![vec![fill; width]; height];
-        DoubleBuffer { buffers: [v0, v1], current: 0 }
+        let v = vec![vec![[fill, fill]; width]; height];
+        DoubleBuffer { buffer: v, current: 0, fill }
     }
 
     fn set(&mut self, row: usize, column: usize, value: u8) {
-        self.buffers[self.current][row][column] = value;
+        self.buffer[row][column][self.current] = value;
     }
 
     fn get(&self, row: usize, column: usize) -> u8 {
-        self.buffers[self.current][row][column]
+        self.buffer[row][column][self.current]
     }
 
     fn get_old(&self, row: usize, column: usize) -> u8 {
-        self.buffers[1 - self.current][row][column]
+        self.buffer[row][column][1 - self.current]
     }
 
     fn switch(&mut self) {
-        self.current = 1 - self.current;
+        let next = 1 - self.current;
+
+        for row in self.buffer.iter_mut() {
+            for cell in row.iter_mut() {
+                cell[next] = self.fill;
+            }
+        }
+
+        self.current = next;
     }
 }
 
@@ -71,13 +77,12 @@ impl Grid {
                 let value = self.buffer.get(row, column);
                 let old_value = self.buffer.get_old(row, column);
 
-
                 if value != old_value {
                     let color = COLORS[value as usize];
                     let cell_x = start_x + column as f32 * cell_w;
                     draw.rect()
                         .x_y(cell_x, row_y)
-                        .w_h(cell_w - 1.0, cell_h - 1.0)
+                        .w_h(cell_w, cell_h)
                         .rgb8(color[0], color[1], color[2]);
                 }
             }
@@ -104,9 +109,8 @@ fn model(app: &App) -> Model {
         .view(view)
         .build()
         .unwrap();
-    // app.draw().background().color(WHITE);
 
-    Model {
+    let mut model = Model {
         fps: 0.0,
         counter: 0,
         spawn: false,
@@ -115,11 +119,18 @@ fn model(app: &App) -> Model {
             width: GRID_WIDTH,
             height: GRID_HEIGHT,
         },
-    }
+    };
+
+    // for col in 0..GRID_WIDTH {
+    //     model.grid.buffer.set(0, col, 1);
+    // }
+
+    model
 }
 
-fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
+fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.spawn = true;
+    spawn_cell(app, model, Point2::new(app.mouse.x, app.mouse.y));
 }
 
 fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -128,15 +139,22 @@ fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
 
 fn mouse_moved(app: &App, model: &mut Model, point: Point2) {
     if model.spawn {
-        let bounds = app.window_rect();
-        let pixels_per_row = bounds.h() / GRID_HEIGHT as f32;
-        let pixels_per_column = bounds.w() / GRID_WIDTH as f32;
-        let grid_row = (bounds.h() / 2.0 - point.y) / pixels_per_row;
-        let grid_column = (point.x + bounds.w() / 2.0) / pixels_per_column;
-
-        model.grid.buffer.set(grid_row as usize, grid_column as usize, 1);
-        // println!("{:?} {:?}", grid_row, grid_column);
+        spawn_cell(app, model, point);
     }
+}
+
+fn spawn_cell(app: &App, model: &mut Model, point: Point2) {
+    let bounds = app.window_rect();
+    let pixels_per_row = bounds.h() / GRID_HEIGHT as f32;
+    let pixels_per_column = bounds.w() / GRID_WIDTH as f32;
+    let grid_row = (bounds.h() / 2.0 - point.y) / pixels_per_row;
+    let grid_column = (point.x + bounds.w() / 2.0) / pixels_per_column;
+
+    let grid_row_truncated = max(0, min(grid_row as usize, GRID_HEIGHT - 1));
+    let grid_column_truncated = max(0, min(grid_column as usize, GRID_WIDTH - 1));
+
+    model.grid.buffer.set(grid_row_truncated, grid_column_truncated, 1);
+    // println!("{:?} {:?}", grid_row, grid_column);
 }
 
 fn update(_app: &App, model: &mut Model, update: Update) {
@@ -150,17 +168,17 @@ fn update(_app: &App, model: &mut Model, update: Update) {
 }
 
 fn update_grid(grid: &mut Grid) {
-    for row in (0..grid.height).rev() {
-        for column in (0..grid.width).rev() {
+    for row in 0..grid.height {
+        for column in 0..grid.width {
             let current_value = grid.buffer.get_old(row, column);
 
-            let reached_bottom = current_value > 0 && row == grid.height - 1;
-            let is_still = current_value > 0 && row < grid.height - 1 && grid.buffer.get_old(row + 1, column) > 0;
-            let has_cell_top = current_value == 0 && row > 0 && grid.buffer.get_old(row - 1, column) > 0;
-
-            let remain = (reached_bottom || is_still) || has_cell_top;
-
-            grid.buffer.set(row, column, remain as u8);
+            if current_value > 0 {
+                if row < grid.height - 1 && grid.buffer.get_old(row + 1, column) == 0 {
+                    grid.buffer.set(row + 1, column, current_value);
+                } else {
+                    grid.buffer.set(row, column, current_value);
+                }
+            }
         }
     }
 }
