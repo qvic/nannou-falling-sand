@@ -1,6 +1,4 @@
-use std::cmp::{max, min};
-use std::ops::{Add, AddAssign, Div, Mul};
-use std::time::Duration;
+use std::ops::{Add, Div};
 
 use nannou::prelude::*;
 
@@ -10,28 +8,38 @@ fn main() {
         .run();
 }
 
-const GRID_WIDTH: usize = 100;
-const GRID_HEIGHT: usize = 100;
+const GRID_WIDTH: usize = 300;
+const GRID_HEIGHT: usize = 300;
 
 struct Grid {
-    buffer: [[u8; GRID_WIDTH]; GRID_HEIGHT],
+    buffer: [[[u8; GRID_WIDTH]; GRID_HEIGHT]; 2],
+    current_buffer: usize,
 }
 
 impl Grid {
     fn display(&self, draw: &Draw, bounds: &Rect) {
-        let cell_wh = bounds.wh().div(Vec2::new(GRID_WIDTH as f32, GRID_HEIGHT as f32));
-        let grid_start = bounds.top_left().add(cell_wh.mul(Vec2::new(0.5, -0.5)));
+        let cell_w = bounds.w() / GRID_WIDTH as f32;
+        let cell_h = bounds.h() / GRID_HEIGHT as f32;
+        let start_x = bounds.left() + cell_w / 2.0;
+        let start_y = bounds.top() - cell_h / 2.0;
 
-        for i in 0..self.buffer.len() {
-            let row = self.buffer[i];
+        let buffer = self.buffer[self.current_buffer];
+        let old_buffer = self.buffer[1 - self.current_buffer];
+
+        for i in 0..buffer.len() {
+            let row = buffer[i];
+            let row_y = start_y - i as f32 * cell_h;
             for j in 0..row.len() {
-                let cell = row[j];
-                let cell_xy = grid_start.add(cell_wh.mul(Vec2::new(j as f32, -(i as f32))));
-                let r = Rect::from_xy_wh(cell_xy, cell_wh).pad(1.0);
-                draw.rect()
-                    .xy(r.xy())
-                    .wh(r.wh())
-                    .rgb8(255 - cell.wrapping_mul(64), 255, 128);
+                let color = row[j];
+                let old_color = old_buffer[i][j];
+
+                if color != old_color {
+                    let cell_x = start_x + j as f32 * cell_w;
+                    draw.rect()
+                        .x_y(cell_x, row_y)
+                        .w_h(cell_w, cell_h)
+                        .rgb8(255 - color.wrapping_mul(64), 255, 128);
+                }
             }
         }
     }
@@ -39,7 +47,6 @@ impl Grid {
 
 struct Model {
     fps: f64,
-    time_past: Duration,
     counter: usize,
     grid: Grid,
 }
@@ -54,30 +61,25 @@ fn model(app: &App) -> Model {
 
     Model {
         fps: 0.0,
-        time_past: Duration::ZERO,
         counter: 0,
-        grid: Grid { buffer: [[1; GRID_WIDTH]; GRID_HEIGHT] },
+        grid: Grid { buffer: [[[1; GRID_WIDTH]; GRID_HEIGHT]; 2], current_buffer: 0 },
     }
 }
 
-fn mouse_pressed(_app: &App, _model: &mut Model, _button: MouseButton) {
-
-}
+fn mouse_pressed(_app: &App, _model: &mut Model, _button: MouseButton) {}
 
 fn update(_app: &App, model: &mut Model, update: Update) {
     model.fps = (1000.0).div(update.since_last.as_millis() as f64);
-    // model.time_past.add_assign(update.since_last);
 
-    // if model.time_past.as_millis() >= 0 {
-        let i = model.counter;
-        let row = (i / GRID_WIDTH) % GRID_HEIGHT;
-        let column = i % GRID_WIDTH;
-        let color = (i / (GRID_HEIGHT * GRID_WIDTH) + 2) % 255;
-        model.grid.buffer[row][column] = color as u8;
+    let i = model.counter;
+    let row = (i / GRID_WIDTH) % GRID_HEIGHT;
+    let column = i % GRID_WIDTH;
+    let color = (i / (GRID_HEIGHT * GRID_WIDTH) + 2) % 255;
 
-        model.counter += 1;
-        // model.time_past = Duration::ZERO;
-    // }
+    model.grid.current_buffer = 1 - model.grid.current_buffer;
+    model.grid.buffer[model.grid.current_buffer][row][column] = color as u8;
+
+    model.counter += 1;
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
