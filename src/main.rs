@@ -12,12 +12,10 @@ fn main() {
 
 const GRID_WIDTH: usize = 100;
 const GRID_HEIGHT: usize = 100;
-const COLORS: [[u8; 3]; 5] = [
-    [255, 255, 255],
-    [49, 53, 82],
-    [184, 64, 94],
-    [46, 176, 134],
-    [238, 230, 206],
+const BACKGROUND: [u8; 3] = [255, 237, 219];
+const COLORS: [[u8; 3]; 2] = [
+    BACKGROUND,
+    [191, 146, 112],
 ];
 
 struct Grid {
@@ -29,13 +27,12 @@ struct Grid {
 struct DoubleBuffer {
     buffer: Vec<Vec<[u8; 2]>>,
     current: usize,
-    fill: u8,
 }
 
 impl DoubleBuffer {
     fn new(width: usize, height: usize, fill: u8) -> Self {
         let v = vec![vec![[fill, fill]; width]; height];
-        DoubleBuffer { buffer: v, current: 0, fill }
+        DoubleBuffer { buffer: v, current: 0 }
     }
 
     fn set(&mut self, row: usize, column: usize, value: u8) {
@@ -55,7 +52,7 @@ impl DoubleBuffer {
 
         for row in self.buffer.iter_mut() {
             for cell in row.iter_mut() {
-                cell[next] = self.fill;
+                cell[next] = cell[self.current];
             }
         }
 
@@ -75,9 +72,8 @@ impl Grid {
 
             for column in 0..self.width {
                 let value = self.buffer.get(row, column);
-                let old_value = self.buffer.get_old(row, column);
 
-                if value != old_value {
+                if value > 0 {
                     let color = COLORS[value as usize];
                     let cell_x = start_x + column as f32 * cell_w;
                     draw.rect()
@@ -174,9 +170,8 @@ fn update_grid(grid: &mut Grid) {
 
             if current_value > 0 {
                 if row < grid.height - 1 && grid.buffer.get_old(row + 1, column) == 0 {
+                    grid.buffer.set(row, column, 0);
                     grid.buffer.set(row + 1, column, current_value);
-                } else {
-                    grid.buffer.set(row, column, current_value);
                 }
             }
         }
@@ -184,7 +179,7 @@ fn update_grid(grid: &mut Grid) {
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
-    // frame.clear(WHITE);
+    frame.clear(rgb8(BACKGROUND[0], BACKGROUND[1], BACKGROUND[2]));
     let draw = app.draw();
     // draw.background().color(WHITE);
 
