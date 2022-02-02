@@ -2,7 +2,6 @@ use std::cmp::{max, min};
 use std::ops::{Add, Div};
 
 use nannou::prelude::*;
-use nannou::state::Mouse;
 
 fn main() {
     nannou::app(model)
@@ -10,8 +9,8 @@ fn main() {
         .run();
 }
 
-const GRID_WIDTH: usize = 100;
-const GRID_HEIGHT: usize = 100;
+const GRID_WIDTH: usize = 200;
+const GRID_HEIGHT: usize = 200;
 const BACKGROUND: [u8; 3] = [255, 237, 219];
 const COLORS: [[u8; 3]; 2] = [
     BACKGROUND,
@@ -106,7 +105,7 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let mut model = Model {
+    Model {
         fps: 0.0,
         counter: 0,
         spawn: false,
@@ -115,18 +114,12 @@ fn model(app: &App) -> Model {
             width: GRID_WIDTH,
             height: GRID_HEIGHT,
         },
-    };
-
-    // for col in 0..GRID_WIDTH {
-    //     model.grid.buffer.set(0, col, 1);
-    // }
-
-    model
+    }
 }
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.spawn = true;
-    spawn_cell(app, model, Point2::new(app.mouse.x, app.mouse.y));
+    spawn_cell(app, model, Point2::new(app.mouse.x, app.mouse.y), 5);
 }
 
 fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -135,22 +128,30 @@ fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
 
 fn mouse_moved(app: &App, model: &mut Model, point: Point2) {
     if model.spawn {
-        spawn_cell(app, model, point);
+        spawn_cell(app, model, point, 2);
     }
 }
 
-fn spawn_cell(app: &App, model: &mut Model, point: Point2) {
+fn spawn_cell(app: &App, model: &mut Model, point: Point2, radius: i32) {
     let bounds = app.window_rect();
     let pixels_per_row = bounds.h() / GRID_HEIGHT as f32;
     let pixels_per_column = bounds.w() / GRID_WIDTH as f32;
     let grid_row = (bounds.h() / 2.0 - point.y) / pixels_per_row;
     let grid_column = (point.x + bounds.w() / 2.0) / pixels_per_column;
 
-    let grid_row_truncated = max(0, min(grid_row as usize, GRID_HEIGHT - 1));
-    let grid_column_truncated = max(0, min(grid_column as usize, GRID_WIDTH - 1));
+    let grid_row_truncated = clamp(grid_row as usize, 0, GRID_HEIGHT - 1);
+    let grid_column_truncated = clamp(grid_column as usize, 0, GRID_WIDTH - 1);
 
-    model.grid.buffer.set(grid_row_truncated, grid_column_truncated, 1);
-    // println!("{:?} {:?}", grid_row, grid_column);
+    let brush_row_from = max(grid_row_truncated as i32 - radius, 0) as usize;
+    let brush_row_to = min(grid_row_truncated as i32 + radius, GRID_HEIGHT as i32 - 1) as usize;
+    let brush_col_from = max(grid_column_truncated as i32 - radius, 0) as usize;
+    let brush_col_to = min(grid_column_truncated as i32 + radius, GRID_WIDTH as i32 - 1) as usize;
+
+    for i in brush_row_from..brush_row_to {
+        for j in brush_col_from..brush_col_to {
+            model.grid.buffer.set(i, j, 1);
+        }
+    }
 }
 
 fn update(_app: &App, model: &mut Model, update: Update) {
@@ -169,9 +170,17 @@ fn update_grid(grid: &mut Grid) {
             let current_value = grid.buffer.get_old(row, column);
 
             if current_value > 0 {
-                if row < grid.height - 1 && grid.buffer.get_old(row + 1, column) == 0 {
-                    grid.buffer.set(row, column, 0);
-                    grid.buffer.set(row + 1, column, current_value);
+                if row < grid.height - 1 {
+                    if grid.buffer.get_old(row + 1, column) == 0 {
+                        grid.buffer.set(row, column, 0);
+                        grid.buffer.set(row + 1, column, current_value);
+                    } else if column > 0 && grid.buffer.get_old(row + 1, column - 1) == 0 {
+                        grid.buffer.set(row, column, 0);
+                        grid.buffer.set(row + 1, column - 1, current_value);
+                    } else if column < grid.width - 1 && grid.buffer.get_old(row + 1, column + 1) == 0 {
+                        grid.buffer.set(row, column, 0);
+                        grid.buffer.set(row + 1, column + 1, current_value);
+                    }
                 }
             }
         }
@@ -181,10 +190,10 @@ fn update_grid(grid: &mut Grid) {
 fn view(app: &App, model: &Model, frame: Frame) {
     frame.clear(rgb8(BACKGROUND[0], BACKGROUND[1], BACKGROUND[2]));
     let draw = app.draw();
-    // draw.background().color(WHITE);
 
     model.grid.display(&draw, &app.window_rect());
 
+    draw_fps(app, &draw, model);
     // print_fps(model);
 
     draw.to_frame(app, &frame).unwrap();
