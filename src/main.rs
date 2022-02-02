@@ -1,4 +1,5 @@
 use std::cmp::{max, min};
+use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Div};
 
 use nannou::prelude::*;
@@ -9,8 +10,8 @@ fn main() {
         .run();
 }
 
-const GRID_WIDTH: usize = 200;
-const GRID_HEIGHT: usize = 200;
+const GRID_WIDTH: usize = 100;
+const GRID_HEIGHT: usize = 100;
 const BACKGROUND: [u8; 3] = [255, 237, 219];
 const COLORS: [[u8; 3]; 2] = [
     BACKGROUND,
@@ -26,6 +27,24 @@ struct Grid {
 struct DoubleBuffer {
     buffer: Vec<Vec<[u8; 2]>>,
     current: usize,
+}
+
+impl Debug for DoubleBuffer {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let height = self.buffer.len();
+        let width = self.buffer[0].len();
+        for i in 0..height {
+            for j in 0..width {
+                write!(f, "{} ", self.buffer[i][j][1 - self.current])?;
+            }
+            write!(f, "     ")?;
+            for j in 0..width {
+                write!(f, "{} ", self.buffer[i][j][self.current])?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
 }
 
 impl DoubleBuffer {
@@ -82,7 +101,7 @@ impl Grid {
                 }
             }
         }
-        // println!("{:?}", self.buffer.buffers[self.buffer.current]);
+        // println!("{:?}", self.buffer);
     }
 }
 
