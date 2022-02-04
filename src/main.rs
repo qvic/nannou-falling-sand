@@ -13,8 +13,8 @@ fn main() {
 const WINDOW_WIDTH: u32 = 600;
 const WINDOW_HEIGHT: u32 = 600;
 
-const GRID_WIDTH: usize = 100;
-const GRID_HEIGHT: usize = 100;
+const GRID_WIDTH: usize = 200;
+const GRID_HEIGHT: usize = 200;
 
 const MOUSE_SPAWN_RADIUS: i32 = 2;
 const BACKGROUND: [u8; 3] = [255, 237, 219];
@@ -24,6 +24,9 @@ const COLORS: [[u8; 3]; 4] = [
     [46, 176, 134],
     [49, 53, 82],
 ];
+
+const DRAW_FPS: bool = true;
+const REDRAW_FPS_FRAMES: u64 = 8;
 
 struct Model {
     fps: f64,
@@ -37,16 +40,6 @@ struct Model {
 struct Cell {
     value: u8,
     updated: bool,
-}
-
-impl Cell {
-    fn draw(&self, draw: &Draw, x: f32, y: f32, w: f32, h: f32) {
-        let color = COLORS[self.value as usize];
-        draw.rect()
-            .x_y(x, y)
-            .w_h(w, h)
-            .rgb8(color[0], color[1], color[2]);
-    }
 }
 
 struct Grid {
@@ -85,11 +78,13 @@ impl Grid {
         &self.buffer[row * self.width + column]
     }
 
-    fn step(&mut self) {
+    fn prepare(&mut self) {
         for cell in self.buffer.iter_mut() {
             cell.updated = false;
         }
+    }
 
+    fn step(&mut self) {
         for row in 0..self.height {
             for column in 0..self.width {
                 let current_cell = self.get(row, column);
@@ -113,7 +108,7 @@ impl Grid {
         }
     }
 
-    fn display(&self, draw: &Draw, bounds: &Rect, redraw: bool) {
+    fn display(&self, draw: &Draw, bounds: &Rect) {
         let cell_w = bounds.w() / GRID_WIDTH as f32;
         let cell_h = bounds.h() / GRID_HEIGHT as f32;
         let start_x = bounds.left() + cell_w / 2.0;
@@ -125,12 +120,20 @@ impl Grid {
             for column in 0..self.width {
                 let cell = self.get(row, column);
 
-                if (redraw && cell.value > 0) || (!redraw && cell.updated) {
+                if cell.updated {
                     let cell_x = start_x + column as f32 * cell_w;
-                    cell.draw(draw, cell_x, row_y, cell_w, cell_h);
+                    Grid::draw_cell(draw, cell_x, row_y, cell_w, cell_h, cell.value);
                 }
             }
         }
+    }
+
+    fn draw_cell(draw: &Draw, x: f32, y: f32, w: f32, h: f32, value: u8) {
+        let color = COLORS[value as usize];
+        draw.rect()
+            .x_y(x, y)
+            .w_h(w, h)
+            .rgb8(color[0], color[1], color[2]);
     }
 }
 
@@ -139,10 +142,8 @@ fn model(app: &App) -> Model {
         .size(WINDOW_WIDTH, WINDOW_HEIGHT)
         .resizable(false)
         .clear_color(rgb8(BACKGROUND[0], BACKGROUND[1], BACKGROUND[2]))
-        .mouse_pressed(mouse_pressed)
-        .mouse_released(mouse_released)
-        .mouse_moved(mouse_moved)
         .view(view)
+        .event(event)
         .build()
         .unwrap();
 
@@ -152,26 +153,6 @@ fn model(app: &App) -> Model {
         spawn: false,
         spawn_color: 1,
         grid: Grid::new(GRID_WIDTH, GRID_HEIGHT, 0),
-    }
-}
-
-fn mouse_pressed(app: &App, model: &mut Model, button: MouseButton) {
-    model.spawn = true;
-    model.spawn_color = match button {
-        MouseButton::Right => 2,
-        MouseButton::Middle => 3,
-        _ => 1,
-    };
-    spawn_cells(app, model, Point2::new(app.mouse.x, app.mouse.y), MOUSE_SPAWN_RADIUS * 2, model.spawn_color);
-}
-
-fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
-    model.spawn = false;
-}
-
-fn mouse_moved(app: &App, model: &mut Model, point: Point2) {
-    if model.spawn {
-        spawn_cells(app, model, point, MOUSE_SPAWN_RADIUS, model.spawn_color);
     }
 }
 
@@ -190,8 +171,8 @@ fn spawn_cells(app: &App, model: &mut Model, point: Point2, radius: i32, fill: u
     let brush_col_from = max(grid_column_truncated as i32 - radius, 0) as usize;
     let brush_col_to = min(grid_column_truncated as i32 + radius, GRID_WIDTH as i32 - 1) as usize;
 
-    for i in brush_row_from..brush_row_to {
-        for j in brush_col_from..brush_col_to {
+    for i in brush_row_from..=brush_row_to {
+        for j in brush_col_from..=brush_col_to {
             if model.grid.get(i, j).value == 0 {
                 model.grid.set(i, j, fill);
             }
@@ -199,29 +180,63 @@ fn spawn_cells(app: &App, model: &mut Model, point: Point2, radius: i32, fill: u
     }
 }
 
-fn update(_app: &App, model: &mut Model, update: Update) {
+fn update(app: &App, model: &mut Model, update: Update) {
     model.fps = (1000.0).div(update.since_last.as_millis() as f64);
+
+    model.grid.prepare();
+
+    if model.spawn {
+        spawn_cells(app, model, Point2::new(app.mouse.x, app.mouse.y), MOUSE_SPAWN_RADIUS, model.spawn_color);
+    }
 
     model.grid.step();
 
     model.counter += 1;
 }
 
+fn event(_app: &App, model: &mut Model, event: WindowEvent) {
+    match event {
+        MousePressed(button) => {
+            model.spawn = true;
+            model.spawn_color = match button {
+                MouseButton::Right => 2,
+                MouseButton::Middle => 3,
+                _ => 1,
+            };
+        }
+        MouseReleased(_) => {
+            model.spawn = false;
+        }
+        _ => {}
+    }
+}
+
 fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(rgb8(BACKGROUND[0], BACKGROUND[1], BACKGROUND[2]));
     let draw = app.draw();
 
-    model.grid.display(&draw, &app.window_rect(), true);
+    model.grid.display(&draw, &app.window_rect());
+
+    if DRAW_FPS && frame.nth() % REDRAW_FPS_FRAMES == 0 {
+        draw_fps(app, &draw, model);
+    }
 
     draw.to_frame(app, &frame).unwrap();
 }
 
 fn draw_fps(app: &App, draw: &Draw, model: &Model) {
-    let text_x_y = app.main_window().rect().top_left().add(Point2::new(50.0, -30.0));
+    let text_xy = app.main_window().rect().top_left().add(vec2(50.0, -15.0));
+    let text_wh = vec2(100.0, 30.0);
+    let font_size = 20;
     let text = format!("{:.2} FPS", model.fps);
 
-    draw.text(&text)
-        .xy(text_x_y)
+    draw.rect()
         .color(BLACK)
-        .font_size(18);
+        .xy(text_xy)
+        .wh(text_wh);
+
+    draw.text(&text)
+        .color(WHITE)
+        .xy(text_xy)
+        .wh(text_wh)
+        .font_size(font_size);
 }
