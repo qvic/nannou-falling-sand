@@ -10,8 +10,8 @@ fn main() {
         .run();
 }
 
-const WINDOW_WIDTH: u32 = 800;
-const WINDOW_HEIGHT: u32 = 800;
+const WINDOW_WIDTH: u32 = 600;
+const WINDOW_HEIGHT: u32 = 600;
 
 const GRID_WIDTH: usize = 100;
 const GRID_HEIGHT: usize = 100;
@@ -37,6 +37,16 @@ struct Model {
 struct Cell {
     value: u8,
     updated: bool,
+}
+
+impl Cell {
+    fn draw(&self, draw: &Draw, x: f32, y: f32, w: f32, h: f32) {
+        let color = COLORS[self.value as usize];
+        draw.rect()
+            .x_y(x, y)
+            .w_h(w, h)
+            .rgb8(color[0], color[1], color[2]);
+    }
 }
 
 struct Grid {
@@ -83,22 +93,19 @@ impl Grid {
         for row in 0..self.height {
             for column in 0..self.width {
                 let current_cell = self.get(row, column);
+                let current_value = current_cell.value;
 
-                if !current_cell.updated {
-                    let current_value = current_cell.value;
-
-                    if current_value > 0 {
-                        if row < self.height - 1 {
-                            if self.get(row + 1, column).value == 0 {
-                                self.set(row, column, 0);
-                                self.set(row + 1, column, current_value);
-                            } else if column > 0 && self.get(row + 1, column - 1).value == 0 {
-                                self.set(row, column, 0);
-                                self.set(row + 1, column - 1, current_value);
-                            } else if column < self.width - 1 && self.get(row + 1, column + 1).value == 0 {
-                                self.set(row, column, 0);
-                                self.set(row + 1, column + 1, current_value);
-                            }
+                if !current_cell.updated && current_value > 0 {
+                    if row < self.height - 1 {
+                        if self.get(row + 1, column).value == 0 {
+                            self.set(row, column, 0);
+                            self.set(row + 1, column, current_value);
+                        } else if column > 0 && self.get(row + 1, column - 1).value == 0 {
+                            self.set(row, column, 0);
+                            self.set(row + 1, column - 1, current_value);
+                        } else if column < self.width - 1 && self.get(row + 1, column + 1).value == 0 {
+                            self.set(row, column, 0);
+                            self.set(row + 1, column + 1, current_value);
                         }
                     }
                 }
@@ -118,13 +125,9 @@ impl Grid {
             for column in 0..self.width {
                 let cell = self.get(row, column);
 
-                if redraw || cell.updated {
-                    let color = COLORS[cell.value as usize];
+                if (redraw && cell.value > 0) || (!redraw && cell.updated) {
                     let cell_x = start_x + column as f32 * cell_w;
-                    draw.rect()
-                        .x_y(cell_x, row_y)
-                        .w_h(cell_w, cell_h)
-                        .rgb8(color[0], color[1], color[2]);
+                    cell.draw(draw, cell_x, row_y, cell_w, cell_h);
                 }
             }
         }
@@ -189,7 +192,9 @@ fn spawn_cells(app: &App, model: &mut Model, point: Point2, radius: i32, fill: u
 
     for i in brush_row_from..brush_row_to {
         for j in brush_col_from..brush_col_to {
-            model.grid.set(i, j, fill);
+            if model.grid.get(i, j).value == 0 {
+                model.grid.set(i, j, fill);
+            }
         }
     }
 }
