@@ -1,4 +1,5 @@
 use std::cmp::{max, min};
+use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Div};
 
 use nannou::prelude::*;
@@ -9,58 +10,103 @@ fn main() {
         .run();
 }
 
+const WINDOW_WIDTH: u32 = 800;
+const WINDOW_HEIGHT: u32 = 800;
+
 const GRID_WIDTH: usize = 100;
 const GRID_HEIGHT: usize = 100;
+
+const MOUSE_SPAWN_RADIUS: i32 = 2;
 const BACKGROUND: [u8; 3] = [255, 237, 219];
-const COLORS: [[u8; 3]; 2] = [
+const COLORS: [[u8; 3]; 4] = [
     BACKGROUND,
-    [191, 146, 112],
+    [184, 64, 94],
+    [46, 176, 134],
+    [49, 53, 82],
 ];
 
+struct Model {
+    fps: f64,
+    counter: u64,
+    spawn: bool,
+    spawn_color: u8,
+    grid: Grid,
+}
+
+#[derive(Copy, Clone)]
+struct Cell {
+    value: u8,
+    updated: bool,
+}
+
 struct Grid {
-    buffer: DoubleBuffer,
+    buffer: Vec<Cell>,
     width: usize,
     height: usize,
 }
 
-struct DoubleBuffer {
-    buffer: Vec<Vec<[u8; 2]>>,
-    current: usize,
-}
-
-impl DoubleBuffer {
-    fn new(width: usize, height: usize, fill: u8) -> Self {
-        let v = vec![vec![[fill, fill]; width]; height];
-        DoubleBuffer { buffer: v, current: 0 }
-    }
-
-    fn set(&mut self, row: usize, column: usize, value: u8) {
-        self.buffer[row][column][self.current] = value;
-    }
-
-    fn get(&self, row: usize, column: usize) -> u8 {
-        self.buffer[row][column][self.current]
-    }
-
-    fn get_old(&self, row: usize, column: usize) -> u8 {
-        self.buffer[row][column][1 - self.current]
-    }
-
-    fn switch(&mut self) {
-        let next = 1 - self.current;
-
-        for row in self.buffer.iter_mut() {
-            for cell in row.iter_mut() {
-                cell[next] = cell[self.current];
+impl Debug for Grid {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for i in 0..self.height {
+            for j in 0..self.width {
+                let cell = self.buffer[i * self.width + j];
+                let updated_mark = if cell.updated { "+" } else { "-" };
+                write!(f, "{}{} ", updated_mark, cell.value)?;
             }
+            write!(f, "\n")?;
         }
-
-        self.current = next;
+        Ok(())
     }
 }
 
 impl Grid {
-    fn display(&self, draw: &Draw, bounds: &Rect) {
+    fn new(width: usize, height: usize, fill: u8) -> Self {
+        let buffer = vec![Cell { value: fill, updated: false }; width * height];
+        Grid { buffer, width, height }
+    }
+
+    fn set(&mut self, row: usize, column: usize, value: u8) {
+        let cell = &mut self.buffer[row * self.width + column];
+        cell.value = value;
+        cell.updated = true;
+    }
+
+    fn get(&self, row: usize, column: usize) -> &Cell {
+        &self.buffer[row * self.width + column]
+    }
+
+    fn step(&mut self) {
+        for cell in self.buffer.iter_mut() {
+            cell.updated = false;
+        }
+
+        for row in 0..self.height {
+            for column in 0..self.width {
+                let current_cell = self.get(row, column);
+
+                if !current_cell.updated {
+                    let current_value = current_cell.value;
+
+                    if current_value > 0 {
+                        if row < self.height - 1 {
+                            if self.get(row + 1, column).value == 0 {
+                                self.set(row, column, 0);
+                                self.set(row + 1, column, current_value);
+                            } else if column > 0 && self.get(row + 1, column - 1).value == 0 {
+                                self.set(row, column, 0);
+                                self.set(row + 1, column - 1, current_value);
+                            } else if column < self.width - 1 && self.get(row + 1, column + 1).value == 0 {
+                                self.set(row, column, 0);
+                                self.set(row + 1, column + 1, current_value);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn display(&self, draw: &Draw, bounds: &Rect, redraw: bool) {
         let cell_w = bounds.w() / GRID_WIDTH as f32;
         let cell_h = bounds.h() / GRID_HEIGHT as f32;
         let start_x = bounds.left() + cell_w / 2.0;
@@ -70,10 +116,10 @@ impl Grid {
             let row_y = start_y - row as f32 * cell_h;
 
             for column in 0..self.width {
-                let value = self.buffer.get(row, column);
+                let cell = self.get(row, column);
 
-                if value > 0 {
-                    let color = COLORS[value as usize];
+                if redraw || cell.updated {
+                    let color = COLORS[cell.value as usize];
                     let cell_x = start_x + column as f32 * cell_w;
                     draw.rect()
                         .x_y(cell_x, row_y)
@@ -85,18 +131,11 @@ impl Grid {
     }
 }
 
-struct Model {
-    fps: f64,
-    counter: usize,
-    spawn: bool,
-    grid: Grid,
-}
-
 fn model(app: &App) -> Model {
     app.new_window()
-        .size(800, 800)
+        .size(WINDOW_WIDTH, WINDOW_HEIGHT)
         .resizable(false)
-        .clear_color(WHITE)
+        .clear_color(rgb8(BACKGROUND[0], BACKGROUND[1], BACKGROUND[2]))
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
         .mouse_moved(mouse_moved)
@@ -108,17 +147,19 @@ fn model(app: &App) -> Model {
         fps: 0.0,
         counter: 0,
         spawn: false,
-        grid: Grid {
-            buffer: DoubleBuffer::new(GRID_WIDTH, GRID_HEIGHT, 0),
-            width: GRID_WIDTH,
-            height: GRID_HEIGHT,
-        },
+        spawn_color: 1,
+        grid: Grid::new(GRID_WIDTH, GRID_HEIGHT, 0),
     }
 }
 
-fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
+fn mouse_pressed(app: &App, model: &mut Model, button: MouseButton) {
     model.spawn = true;
-    spawn_cell(app, model, Point2::new(app.mouse.x, app.mouse.y), 5);
+    model.spawn_color = match button {
+        MouseButton::Right => 2,
+        MouseButton::Middle => 3,
+        _ => 1,
+    };
+    spawn_cells(app, model, Point2::new(app.mouse.x, app.mouse.y), MOUSE_SPAWN_RADIUS * 2, model.spawn_color);
 }
 
 fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -127,11 +168,11 @@ fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
 
 fn mouse_moved(app: &App, model: &mut Model, point: Point2) {
     if model.spawn {
-        spawn_cell(app, model, point, 2);
+        spawn_cells(app, model, point, MOUSE_SPAWN_RADIUS, model.spawn_color);
     }
 }
 
-fn spawn_cell(app: &App, model: &mut Model, point: Point2, radius: i32) {
+fn spawn_cells(app: &App, model: &mut Model, point: Point2, radius: i32, fill: u8) {
     let bounds = app.window_rect();
     let pixels_per_row = bounds.h() / GRID_HEIGHT as f32;
     let pixels_per_column = bounds.w() / GRID_WIDTH as f32;
@@ -148,7 +189,7 @@ fn spawn_cell(app: &App, model: &mut Model, point: Point2, radius: i32) {
 
     for i in brush_row_from..brush_row_to {
         for j in brush_col_from..brush_col_to {
-            model.grid.buffer.set(i, j, 1);
+            model.grid.set(i, j, fill);
         }
     }
 }
@@ -156,44 +197,16 @@ fn spawn_cell(app: &App, model: &mut Model, point: Point2, radius: i32) {
 fn update(_app: &App, model: &mut Model, update: Update) {
     model.fps = (1000.0).div(update.since_last.as_millis() as f64);
 
-    model.grid.buffer.switch();
-
-    update_grid(&mut model.grid);
+    model.grid.step();
 
     model.counter += 1;
-}
-
-fn update_grid(grid: &mut Grid) {
-    for row in 0..grid.height {
-        for column in 0..grid.width {
-            let current_value = grid.buffer.get_old(row, column);
-
-            if current_value > 0 {
-                if row < grid.height - 1 {
-                    if grid.buffer.get_old(row + 1, column) == 0 {
-                        grid.buffer.set(row, column, 0);
-                        grid.buffer.set(row + 1, column, current_value);
-                    } else if column > 0 && grid.buffer.get_old(row + 1, column - 1) == 0 {
-                        grid.buffer.set(row, column, 0);
-                        grid.buffer.set(row + 1, column - 1, current_value);
-                    } else if column < grid.width - 1 && grid.buffer.get_old(row + 1, column + 1) == 0 {
-                        grid.buffer.set(row, column, 0);
-                        grid.buffer.set(row + 1, column + 1, current_value);
-                    }
-                }
-            }
-        }
-    }
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
     frame.clear(rgb8(BACKGROUND[0], BACKGROUND[1], BACKGROUND[2]));
     let draw = app.draw();
 
-    model.grid.display(&draw, &app.window_rect());
-
-    draw_fps(app, &draw, model);
-    // print_fps(model);
+    model.grid.display(&draw, &app.window_rect(), true);
 
     draw.to_frame(app, &frame).unwrap();
 }
@@ -206,8 +219,4 @@ fn draw_fps(app: &App, draw: &Draw, model: &Model) {
         .xy(text_x_y)
         .color(BLACK)
         .font_size(18);
-}
-
-fn print_fps(model: &Model) {
-    println!("{:.3}", model.fps);
 }
