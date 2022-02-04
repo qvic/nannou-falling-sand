@@ -1,12 +1,12 @@
-use std::cmp::{min};
+use std::cmp::min;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
-use std::ops::{Add, Mul};
+use std::ops::Add;
 
 use nannou::prelude::*;
 use nannou::rand;
-use crate::rand::Rng;
 
+use crate::rand::Rng;
 use crate::rand::rngs::ThreadRng;
 
 const WINDOW_TITLE: &'static str = "Falling sand";
@@ -171,6 +171,15 @@ impl Grid {
         }
     }
 
+    fn get_bottom_row_availability(&self, row: usize, column: usize) -> [bool; 3] {
+        let last_row = row == self.height - 1;
+        let bottom = !last_row && self.get(row + 1, column).value == 0;
+        let bottom_left = !last_row && column > 0 && self.get(row + 1, column - 1).value == 0;
+        let bottom_right = !last_row && column < self.width - 1 && self.get(row + 1, column + 1).value == 0;
+
+        [bottom_left, bottom, bottom_right]
+    }
+
     fn step(&mut self) {
         for row in 0..self.height {
             for column in 0..self.width {
@@ -178,17 +187,26 @@ impl Grid {
                 let current_value = current_cell.value;
 
                 if !current_cell.updated && current_value > 0 {
-                    if row < self.height - 1 {
-                        if self.get(row + 1, column).value == 0 {
+                    match self.get_bottom_row_availability(row, column) {
+                        [_, true, _] => {
                             self.set(row, column, 0);
                             self.set(row + 1, column, current_value);
-                        } else if column > 0 && self.get(row + 1, column - 1).value == 0 {
+                        }
+                        [true, _, true] => {
+                            let go_left: bool = self.rng.gen();
+                            let dx = (go_left as usize) * 2 - 1; // map 0 1 to -1 1
+                            self.set(row, column, 0);
+                            self.set(row + 1, column + dx, current_value);
+                        }
+                        [true, _, _] => {
                             self.set(row, column, 0);
                             self.set(row + 1, column - 1, current_value);
-                        } else if column < self.width - 1 && self.get(row + 1, column + 1).value == 0 {
+                        }
+                        [_, _, true] => {
                             self.set(row, column, 0);
                             self.set(row + 1, column + 1, current_value);
                         }
+                        _ => {}
                     }
                 }
             }
@@ -196,7 +214,7 @@ impl Grid {
     }
 
     fn display(&self, draw: &Draw) {
-        let start_x = - (WINDOW_WIDTH_PX as f32) / 2.0 + CELL_WIDTH_PX / 2.0;
+        let start_x = -(WINDOW_WIDTH_PX as f32) / 2.0 + CELL_WIDTH_PX / 2.0;
         let start_y = WINDOW_HEIGHT_PX as f32 / 2.0 - CELL_HEIGHT_PX / 2.0;
 
         for row in 0..self.height {
