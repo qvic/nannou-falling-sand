@@ -1,13 +1,13 @@
+mod game;
+
 use std::cmp::min;
-use std::fmt::{Debug, Formatter};
-use std::marker::PhantomData;
 use std::ops::Add;
+use nannou::color::rgb_u32;
 
 use nannou::prelude::*;
-use nannou::rand;
 
-use crate::rand::Rng;
-use crate::rand::rngs::ThreadRng;
+use game::Material;
+use crate::game::{IndexShift, MaterialId, MovementRule, Simulation};
 
 const WINDOW_TITLE: &'static str = "Falling sand";
 
@@ -19,13 +19,7 @@ const GRID_HEIGHT_CELLS: usize = 100;
 
 const MOUSE_SPAWN_RADIUS: u8 = 1;
 
-const BACKGROUND: Rgb8 = rgb8(255, 237, 219);
-const COLORS: [Rgb8; 4] = [
-    BACKGROUND,
-    rgb8(184, 64, 94),
-    rgb8(46, 176, 134),
-    rgb8(49, 53, 82),
-];
+const BACKGROUND: u32 = 0xEEE6CE;
 
 const DRAW_FPS: bool = true;
 const REDRAW_FPS_FRAMES: u64 = 8;
@@ -41,20 +35,25 @@ fn model(app: &App) -> Model {
         .title(WINDOW_TITLE)
         .size(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX)
         .resizable(false)
-        .clear_color(BACKGROUND)
+        .clear_color(rgb_u32(BACKGROUND))
         .view(view)
         .event(event)
         .build()
         .unwrap();
 
+    let materials = vec![
+        Material::new(0x2EB086, vec![
+            MovementRule::new(IndexShift::new(1, 0), vec![IndexShift::new(1, 0)], vec![]),
+            MovementRule::new(IndexShift::new(1, -1), vec![IndexShift::new(1, -1)], vec![]),
+            MovementRule::new(IndexShift::new(1, 1), vec![IndexShift::new(1, 1)], vec![]),
+        ]),
+        Material::new(0xB8405E, vec![]),
+    ];
+
     Model {
         fps: 0.0,
-        counter: 0,
-        brush: Brush { fill: 1, active: false, radius: MOUSE_SPAWN_RADIUS },
-        simulation: Simulation {
-            grid: Grid::new(GRID_WIDTH_CELLS, GRID_HEIGHT_CELLS, 0),
-            bounds: app.window_rect(),
-        },
+        brush: Brush::new(),
+        game: GameView::new(GRID_WIDTH_CELLS, GRID_HEIGHT_CELLS, app.window_rect(), BACKGROUND, materials),
     }
 }
 
@@ -64,9 +63,9 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
         MousePressed(button) => {
             model.brush.active = true;
             model.brush.fill = match button {
-                MouseButton::Right => 2,
-                MouseButton::Middle => 0,
-                _ => 1,
+                MouseButton::Right => Some(MaterialId(1)),
+                MouseButton::Middle => None,
+                _ => Some(MaterialId(0)),
             };
         }
         MouseReleased(_) => {
@@ -79,21 +78,19 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
 fn update(app: &App, model: &mut Model, update: Update) {
     model.fps = 1000.0 / update.since_last.as_millis() as f64;
 
-    model.simulation.prepare();
+    model.game.prepare();
 
     if model.brush.active {
-        model.simulation.spawn(app.mouse.position(), model.brush.radius, model.brush.fill);
+        model.game.spawn(app.mouse.position(), model.brush.radius, model.brush.fill);
     }
 
-    model.simulation.step();
-
-    model.counter += 1;
+    model.game.step();
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
-    model.simulation.display(&draw);
+    model.game.display(&draw);
 
     if DRAW_FPS && frame.nth() % REDRAW_FPS_FRAMES == 0 {
         draw_fps(app, &draw, model);
@@ -104,177 +101,95 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
 struct Model {
     fps: f64,
-    counter: u64,
     brush: Brush,
-    simulation: Simulation,
+    game: GameView,
 }
-
-type CellValue = u8;
 
 struct Brush {
     active: bool,
     radius: u8,
-    fill: CellValue,
+    fill: Option<MaterialId>,
 }
 
-#[derive(Copy, Clone)]
-struct Cell {
-    value: CellValue,
-    updated: bool,
+impl Brush {
+    pub fn new() -> Self {
+        Self { active: false, radius: MOUSE_SPAWN_RADIUS, fill: None }
+    }
 }
 
-struct Simulation {
-    grid: Grid,
+struct GameView {
+    simulation: Simulation,
     bounds: Rect,
+    colors: Vec<Rgb8>,
 }
 
-impl Simulation {
+impl GameView {
+    fn new(width: usize, height: usize, bounds: Rect, background_color: u32, materials: Vec<Material>) -> Self {
+        let mut colors = Vec::with_capacity(materials.len() + 1);
+        colors.push(rgb_u32(background_color));
+        for material in materials.iter() {
+            colors.push(rgb_u32(material.color));
+        }
+
+        Self { simulation: Simulation::new(width, height, materials), bounds, colors }
+    }
 
     fn prepare(&mut self) {
-        self.grid.prepare();
+        self.simulation.prepare();
     }
 
     fn step(&mut self) {
-        self.grid.step();
+        self.simulation.step();
     }
 
     fn display(&self, draw: &Draw) {
-        let cell_width = self.bounds.w() / self.grid.width as f32;
-        let cell_height = self.bounds.h() / self.grid.height as f32;
+        let cell_width = self.bounds.w() / self.simulation.width as f32;
+        let cell_height = self.bounds.h() / self.simulation.height as f32;
 
         let start_x = self.bounds.left() + cell_width / 2.0;
         let start_y = self.bounds.top() - cell_height / 2.0;
 
-        for row in 0..self.grid.height {
+        for row in 0..self.simulation.height {
             let row_y = start_y - row as f32 * cell_height;
 
-            for column in 0..self.grid.width {
-                let cell = self.grid.get(row, column);
+            for column in 0..self.simulation.width {
+                let cell = self.simulation.get(row, column);
 
                 if cell.updated {
+                    let color_index = cell.value.map_or(0, |v| v.0 + 1) as usize;
+                    let color = self.colors[color_index];
                     let cell_x = start_x + column as f32 * cell_width;
-                    Simulation::draw_cell(draw, cell_x, row_y, cell_width, cell_width, cell.value);
+                    Self::draw_cell(draw, cell_x, row_y, cell_width, cell_width, color);
                 }
             }
         }
     }
 
-    fn draw_cell(draw: &Draw, x: f32, y: f32, w: f32, h: f32, value: CellValue) {
-        let color = COLORS[value as usize];
+    fn draw_cell(draw: &Draw, x: f32, y: f32, w: f32, h: f32, color: Rgb8) {
         draw.rect()
             .x_y(x, y)
             .w_h(w, h)
             .color(color);
     }
 
-    fn spawn(&mut self, mouse: Vec2, radius: u8, fill: CellValue) {
+    fn spawn(&mut self, mouse: Vec2, radius: u8, material: Option<MaterialId>) {
         let r = radius as usize;
-        let cell_width = self.bounds.w() / self.grid.width as f32;
-        let cell_height = self.bounds.h() / self.grid.height as f32;
+        let cell_width = self.bounds.w() / self.simulation.width as f32;
+        let cell_height = self.bounds.h() / self.simulation.height as f32;
 
         let row = ((self.bounds.y() + self.bounds.h() / 2.0 - mouse.y) / cell_height) as usize;
         let column = ((self.bounds.x() + self.bounds.w() / 2.0 + mouse.x) / cell_width) as usize;
 
         let brush_row_from = row.saturating_sub(r);
-        let brush_row_to = min(row + r, self.grid.height - 1);
+        let brush_row_to = min(row + r, self.simulation.height - 1);
 
         let brush_col_from = column.saturating_sub(r);
-        let brush_col_to = min(column + r, self.grid.width - 1);
+        let brush_col_to = min(column + r, self.simulation.width - 1);
 
         for i in brush_row_from..=brush_row_to {
             for j in brush_col_from..=brush_col_to {
-                if self.grid.get(i, j).value == 0 || fill == 0 {
-                    self.grid.set(i, j, fill);
-                }
-            }
-        }
-    }
-}
-
-struct Grid {
-    buffer: Vec<Cell>,
-    width: usize,
-    height: usize,
-    rng: ThreadRng,
-}
-
-impl Debug for Grid {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for i in 0..self.height {
-            for j in 0..self.width {
-                let cell = self.buffer[i * self.width + j];
-                let updated_mark = if cell.updated { "+" } else { "-" };
-                write!(f, "{}{} ", updated_mark, cell.value)?;
-            }
-            write!(f, "\n")?;
-        }
-        Ok(())
-    }
-}
-
-impl Grid {
-
-    fn new(width: usize, height: usize, fill: CellValue) -> Self {
-        let buffer = vec![Cell { value: fill, updated: false }; width * height];
-        let rng = rand::thread_rng();
-
-        Grid { buffer, width, height, rng }
-    }
-
-    fn set(&mut self, row: usize, column: usize, value: CellValue) {
-        let cell = &mut self.buffer[row * self.width + column];
-        cell.value = value;
-        cell.updated = true;
-    }
-
-    fn get(&self, row: usize, column: usize) -> &Cell {
-        &self.buffer[row * self.width + column]
-    }
-
-    fn prepare(&mut self) {
-        for cell in self.buffer.iter_mut() {
-            cell.updated = false;
-        }
-    }
-
-    fn get_bottom_row_availability(&self, row: usize, column: usize) -> [bool; 3] {
-        let last_row = row == self.height - 1;
-        let bottom = !last_row && self.get(row + 1, column).value == 0;
-        let bottom_left = !last_row && column > 0 && self.get(row + 1, column - 1).value == 0;
-        let bottom_right = !last_row && column < self.width - 1 && self.get(row + 1, column + 1).value == 0;
-
-        [bottom_left, bottom, bottom_right]
-    }
-
-    fn step(&mut self) {
-        for row in 0..self.height {
-            for column in 0..self.width {
-                let current_cell = self.get(row, column);
-                let current_value = current_cell.value;
-
-                if !current_cell.updated && current_value > 0 {
-                    match self.get_bottom_row_availability(row, column) {
-                        [_, true, _] => {
-                            self.set(row, column, 0);
-                            self.set(row + 1, column, current_value);
-                        }
-                        [true, _, true] => {
-                            let go_left: bool = self.rng.gen();
-                            let dx = (go_left as i32) * 2 - 1; // map 0 1 to -1 1
-                            let new_column = (column as i32 + dx) as usize;
-                            self.set(row, column, 0);
-                            self.set(row + 1, new_column, current_value);
-                        }
-                        [true, _, _] => {
-                            self.set(row, column, 0);
-                            self.set(row + 1, column - 1, current_value);
-                        }
-                        [_, _, true] => {
-                            self.set(row, column, 0);
-                            self.set(row + 1, column + 1, current_value);
-                        }
-                        _ => {}
-                    }
+                if self.simulation.get(i, j).value.is_none() || material.is_none() {
+                    self.simulation.set(i, j, material);
                 }
             }
         }
@@ -297,8 +212,4 @@ fn draw_fps(app: &App, draw: &Draw, model: &Model) {
         .xy(text_xy)
         .wh(text_wh)
         .font_size(font_size);
-}
-
-const fn rgb8(red: u8, green: u8, blue: u8) -> Rgb8 {
-    Rgb8 { red, green, blue, standard: PhantomData }
 }
