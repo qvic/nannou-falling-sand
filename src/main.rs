@@ -24,10 +24,10 @@ const WINDOW_TITLE: &'static str = "Falling sand";
 const WINDOW_WIDTH_PX: u32 = 800;
 const WINDOW_HEIGHT_PX: u32 = 800;
 
-const GRID_WIDTH_CELLS: usize = 100;
-const GRID_HEIGHT_CELLS: usize = 100;
+const GRID_WIDTH_CELLS: usize = 200;
+const GRID_HEIGHT_CELLS: usize = 200;
 
-const MOUSE_SPAWN_RADIUS: u8 = 1;
+const MOUSE_SPAWN_RADIUS: u8 = 5;
 
 const BACKGROUND: u32 = 0xEEE6CE;
 
@@ -60,7 +60,7 @@ fn model(app: &App) -> Model {
             MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
             MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
         ]),
-        Material::new(1, "Water", "Key2", 0x313552, vec![
+        Material::new(1, "Water", "Key2", 0x2666CF, vec![
             MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
             MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
             MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
@@ -68,31 +68,31 @@ fn model(app: &App) -> Model {
             MovementRule::new(Movement::Move(IndexShift::new(0, 1)), vec![IndexShift::new(0, 1)], vec![]),
         ]),
         Material::new(2, "Wall", "Key3", 0xB8405E, vec![]),
-        Material::new(3, "Plague", "Key4", 0xF1D00A, vec![
+        Material::new(3, "Plague", "Key4", 0x8A39E1, vec![
             MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
             MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
             MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
             MovementRule::new(Movement::Copy(IndexShift::new(0, -1)), vec![], vec![IndexShift::new(0, -1)]),
             MovementRule::new(Movement::Copy(IndexShift::new(0, 1)), vec![], vec![IndexShift::new(0, 1)]),
-            MovementRule::new(Movement::Copy(IndexShift::new(-1, -1)), vec![], vec![IndexShift::new(-1, -1)]),
             MovementRule::new(Movement::Copy(IndexShift::new(-1, 0)), vec![], vec![IndexShift::new(-1, 0)]),
+            MovementRule::new(Movement::Copy(IndexShift::new(-1, -1)), vec![], vec![IndexShift::new(-1, -1)]),
             MovementRule::new(Movement::Copy(IndexShift::new(-1, 1)), vec![], vec![IndexShift::new(-1, 1)]),
-            MovementRule::new(Movement::Copy(IndexShift::new(1, -1)), vec![], vec![IndexShift::new(1, -1)]),
             MovementRule::new(Movement::Copy(IndexShift::new(1, 0)), vec![], vec![IndexShift::new(1, 0)]),
+            MovementRule::new(Movement::Copy(IndexShift::new(1, -1)), vec![], vec![IndexShift::new(1, -1)]),
             MovementRule::new(Movement::Copy(IndexShift::new(1, 1)), vec![], vec![IndexShift::new(1, 1)]),
         ]),
         Material::new(4, "Acidic sand", "Key5", 0xF76E11, vec![
             MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
             MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
             MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![], vec![IndexShift::new(1, 0)]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![], vec![IndexShift::new(1, -1)]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![], vec![IndexShift::new(1, 1)]),
+            MovementRule::new(Movement::Move(IndexShift::new(-1, 0)), vec![], vec![IndexShift::new(-1, 0)]),
+            MovementRule::new(Movement::Move(IndexShift::new(-1, -1)), vec![], vec![IndexShift::new(-1, -1)]),
+            MovementRule::new(Movement::Move(IndexShift::new(-1, 1)), vec![], vec![IndexShift::new(-1, 1)]),
             MovementRule::new(Movement::Move(IndexShift::new(0, -1)), vec![], vec![IndexShift::new(0, -1)]),
             MovementRule::new(Movement::Move(IndexShift::new(0, 1)), vec![], vec![IndexShift::new(0, 1)]),
-            MovementRule::new(Movement::Move(IndexShift::new(-1, -1)), vec![], vec![IndexShift::new(-1, -1)]),
-            MovementRule::new(Movement::Move(IndexShift::new(-1, 0)), vec![], vec![IndexShift::new(-1, 0)]),
-            MovementRule::new(Movement::Move(IndexShift::new(-1, 1)), vec![], vec![IndexShift::new(-1, 1)]),
-            MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![], vec![IndexShift::new(1, -1)]),
-            MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![], vec![IndexShift::new(1, 0)]),
-            MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![], vec![IndexShift::new(1, 1)]),
         ]),
     ]);
 
