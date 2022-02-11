@@ -1,13 +1,23 @@
-mod game;
-
-use std::cmp::min;
 use std::ops::Add;
+
 use nannou::color::rgb_u32;
-
 use nannou::prelude::*;
+use nannou::winit::event::VirtualKeyCode;
 
-use game::Material;
-use crate::game::{IndexShift, MaterialId, MovementRule, Simulation};
+use crate::{
+    materials::MaterialId,
+    materials::Material,
+    materials::IndexShift,
+    game::Simulation,
+    materials::Materials,
+    materials::Movement,
+    materials::MovementRule,
+    view::GameView
+};
+
+mod game;
+mod materials;
+mod view;
 
 const WINDOW_TITLE: &'static str = "Falling sand";
 
@@ -21,8 +31,10 @@ const MOUSE_SPAWN_RADIUS: u8 = 1;
 
 const BACKGROUND: u32 = 0xEEE6CE;
 
-const DRAW_FPS: bool = true;
-const REDRAW_FPS_FRAMES: u64 = 8;
+const REDRAW_FPS_FRAMES: u64 = 16;
+
+const TOP_BAR_PAD: f32 = 35.0;
+const TOP_BAR_INFO_WIDTH: f32 = 100.0;
 
 fn main() {
     nannou::app(model)
@@ -41,38 +53,63 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let materials = vec![
-        Material::new(0x2EB086, vec![
-            MovementRule::new(IndexShift::new(1, 0), vec![IndexShift::new(1, 0)], vec![]),
-            MovementRule::new(IndexShift::new(1, -1), vec![IndexShift::new(1, -1)], vec![]),
-            MovementRule::new(IndexShift::new(1, 1), vec![IndexShift::new(1, 1)], vec![]),
+    // TODO: load from file
+    let materials = Materials::new(BACKGROUND, vec![
+        Material::new(0, "Sand", "Key1", 0x2EB086, vec![
+            MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
         ]),
-        Material::new(0xB8405E, vec![]),
-    ];
+        Material::new(1, "Water", "Key2", 0x313552, vec![
+            MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(0, -1)), vec![IndexShift::new(0, -1)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(0, 1)), vec![IndexShift::new(0, 1)], vec![]),
+        ]),
+        Material::new(2, "Wall", "Key3", 0xB8405E, vec![]),
+        Material::new(3, "Plague", "Key4", 0xF1D00A, vec![
+            MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![],vec![IndexShift::new(1, 0)]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![],vec![IndexShift::new(1, -1)]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![],vec![IndexShift::new(1, 1)]),
+        ]),
+    ]);
+
+    let grid_bounds = app.window_rect().pad_top(TOP_BAR_PAD);
 
     Model {
         fps: 0.0,
-        brush: Brush::new(),
-        game: GameView::new(GRID_WIDTH_CELLS, GRID_HEIGHT_CELLS, app.window_rect(), BACKGROUND, materials),
+        brush: Brush::new(MOUSE_SPAWN_RADIUS),
+        game: GameView::new(GRID_WIDTH_CELLS, GRID_HEIGHT_CELLS, grid_bounds, materials),
     }
 }
-
 
 fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     match event {
         MousePressed(button) => {
             model.brush.active = true;
-            model.brush.fill = match button {
-                MouseButton::Right => Some(MaterialId(1)),
-                MouseButton::Middle => None,
-                _ => Some(MaterialId(0)),
-            };
+            if button == MouseButton::Right {
+                model.brush.fill = None;
+            }
         }
         MouseReleased(_) => {
             model.brush.active = false;
         }
+        KeyPressed(key) => {
+            let materials = model.game.materials();
+            if let Some(material_id) = materials.get_id_by_key(resolve_key_name(key).as_str()) {
+                model.brush.fill = Some(material_id);
+            }
+        }
         _ => {}
     }
+}
+
+fn resolve_key_name(key: VirtualKeyCode) -> String {
+    format!("{:?}", key)
 }
 
 fn update(app: &App, model: &mut Model, update: Update) {
@@ -92,9 +129,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     model.game.display(&draw);
 
-    if DRAW_FPS && frame.nth() % REDRAW_FPS_FRAMES == 0 {
+    if frame.nth() % REDRAW_FPS_FRAMES == 0 {
         draw_fps(app, &draw, model);
     }
+
+    draw_material_info(app, &draw, model);
 
     draw.to_frame(app, &frame).unwrap();
 }
@@ -112,94 +151,42 @@ struct Brush {
 }
 
 impl Brush {
-    pub fn new() -> Self {
-        Self { active: false, radius: MOUSE_SPAWN_RADIUS, fill: None }
+    pub fn new(radius: u8) -> Self {
+        Self { active: false, radius, fill: Some(MaterialId(0)) }
     }
 }
 
-struct GameView {
-    simulation: Simulation,
-    bounds: Rect,
-    colors: Vec<Rgb8>,
-}
+fn draw_material_info(app: &App, draw: &Draw, model: &Model) {
+    let material_color = model.game.materials().get_color(model.brush.fill);
+    let material_name = model.game.materials().get_name(model.brush.fill);
 
-impl GameView {
-    fn new(width: usize, height: usize, bounds: Rect, background_color: u32, materials: Vec<Material>) -> Self {
-        let mut colors = Vec::with_capacity(materials.len() + 1);
-        colors.push(rgb_u32(background_color));
-        for material in materials.iter() {
-            colors.push(rgb_u32(material.color));
-        }
+    let material_color_xy = app.window_rect().top_right().add(vec2(-TOP_BAR_INFO_WIDTH / 2.0, -TOP_BAR_PAD / 2.0));
+    let material_color_wh = vec2(TOP_BAR_INFO_WIDTH, TOP_BAR_PAD);
+    let material_name_xy = vec2(0.0, app.window_rect().top() - TOP_BAR_PAD / 2.0);
+    let material_name_wh = vec2(app.window_rect().w() - 2.0 * TOP_BAR_INFO_WIDTH, TOP_BAR_PAD);
+    let font_size = 22;
 
-        Self { simulation: Simulation::new(width, height, materials), bounds, colors }
-    }
+    draw.rect()
+        .xy(material_color_xy)
+        .wh(material_color_wh)
+        .color(rgb_u32(material_color));
 
-    fn prepare(&mut self) {
-        self.simulation.prepare();
-    }
+    draw.rect()
+        .xy(material_name_xy)
+        .wh(material_name_wh)
+        .color(WHITE);
 
-    fn step(&mut self) {
-        self.simulation.step();
-    }
-
-    fn display(&self, draw: &Draw) {
-        let cell_width = self.bounds.w() / self.simulation.width as f32;
-        let cell_height = self.bounds.h() / self.simulation.height as f32;
-
-        let start_x = self.bounds.left() + cell_width / 2.0;
-        let start_y = self.bounds.top() - cell_height / 2.0;
-
-        for row in 0..self.simulation.height {
-            let row_y = start_y - row as f32 * cell_height;
-
-            for column in 0..self.simulation.width {
-                let cell = self.simulation.get(row, column);
-
-                if cell.updated {
-                    let color_index = cell.value.map_or(0, |v| v.0 + 1) as usize;
-                    let color = self.colors[color_index];
-                    let cell_x = start_x + column as f32 * cell_width;
-                    Self::draw_cell(draw, cell_x, row_y, cell_width, cell_width, color);
-                }
-            }
-        }
-    }
-
-    fn draw_cell(draw: &Draw, x: f32, y: f32, w: f32, h: f32, color: Rgb8) {
-        draw.rect()
-            .x_y(x, y)
-            .w_h(w, h)
-            .color(color);
-    }
-
-    fn spawn(&mut self, mouse: Vec2, radius: u8, material: Option<MaterialId>) {
-        let r = radius as usize;
-        let cell_width = self.bounds.w() / self.simulation.width as f32;
-        let cell_height = self.bounds.h() / self.simulation.height as f32;
-
-        let row = ((self.bounds.y() + self.bounds.h() / 2.0 - mouse.y) / cell_height) as usize;
-        let column = ((self.bounds.x() + self.bounds.w() / 2.0 + mouse.x) / cell_width) as usize;
-
-        let brush_row_from = row.saturating_sub(r);
-        let brush_row_to = min(row + r, self.simulation.height - 1);
-
-        let brush_col_from = column.saturating_sub(r);
-        let brush_col_to = min(column + r, self.simulation.width - 1);
-
-        for i in brush_row_from..=brush_row_to {
-            for j in brush_col_from..=brush_col_to {
-                if self.simulation.get(i, j).value.is_none() || material.is_none() {
-                    self.simulation.set(i, j, material);
-                }
-            }
-        }
-    }
+    draw.text(&material_name)
+        .xy(material_name_xy)
+        .wh(material_name_wh)
+        .font_size(font_size)
+        .color(BLACK);
 }
 
 fn draw_fps(app: &App, draw: &Draw, model: &Model) {
-    let text_xy = app.main_window().rect().top_left().add(vec2(50.0, -15.0));
-    let text_wh = vec2(100.0, 30.0);
-    let font_size = 20;
+    let text_xy = app.window_rect().top_left().add(vec2(TOP_BAR_INFO_WIDTH / 2.0, -TOP_BAR_PAD / 2.0));
+    let text_wh = vec2(TOP_BAR_INFO_WIDTH, TOP_BAR_PAD);
+    let font_size = 18;
     let text = format!("{:.2} FPS", model.fps);
 
     draw.rect()
