@@ -80,23 +80,33 @@ impl Simulation {
         let row_sgn = row as i64;
         let column_sgn = column as i64;
 
-        rules.iter().find(|rule| self.is_matching_rule(rule, row_sgn, column_sgn))
+        rules.iter().find(|rule| self.is_matching_rule(rule, row_sgn, column_sgn, value))
             .map(|rule| rule.movement)
     }
 
-    fn is_matching_rule(&self, rule: &MovementRule, row: i64, column: i64) -> bool {
+    fn is_matching_rule(&self, rule: &MovementRule, row: i64, column: i64, value: MaterialId) -> bool {
         let empty_satisfied = rule.empty.iter().all(|i| self.is_empty(row + i.row, column + i.column));
-        let occupied_satisfied = rule.occupied.iter().all(|i| self.is_occupied(row + i.row, column + i.column));
+        let occupied_satisfied = rule.occupied.iter().all(|i| self.is_occupied(row + i.row, column + i.column, value));
 
         empty_satisfied && occupied_satisfied
     }
 
     fn is_empty(&self, row: i64, column: i64) -> bool {
-        self.in_bounds(row, column) && self.get(row as usize, column as usize).value.is_none()
+        if self.in_bounds(row, column) {
+            let cell = self.get(row as usize, column as usize);
+            !cell.updated && cell.value.is_none()
+        } else {
+            false
+        }
     }
 
-    fn is_occupied(&self, row: i64, column: i64) -> bool {
-        self.in_bounds(row, column) && self.get(row as usize, column as usize).value.is_some()
+    fn is_occupied(&self, row: i64, column: i64, current_value: MaterialId) -> bool {
+        if self.in_bounds(row, column) {
+            let cell = self.get(row as usize, column as usize);
+            !cell.updated && cell.value.filter(|&v| v != current_value).is_some()
+        } else {
+            false
+        }
     }
 
     fn in_bounds(&self, row: i64, column: i64) -> bool {

@@ -5,14 +5,14 @@ use nannou::prelude::*;
 use nannou::winit::event::VirtualKeyCode;
 
 use crate::{
-    materials::MaterialId,
-    materials::Material,
-    materials::IndexShift,
     game::Simulation,
+    materials::IndexShift,
+    materials::Material,
+    materials::MaterialId,
     materials::Materials,
     materials::Movement,
     materials::MovementRule,
-    view::GameView
+    view::GameView,
 };
 
 mod game;
@@ -72,9 +72,27 @@ fn model(app: &App) -> Model {
             MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
             MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
             MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
-            MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![],vec![IndexShift::new(1, 0)]),
-            MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![],vec![IndexShift::new(1, -1)]),
-            MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![],vec![IndexShift::new(1, 1)]),
+            MovementRule::new(Movement::Copy(IndexShift::new(0, -1)), vec![], vec![IndexShift::new(0, -1)]),
+            MovementRule::new(Movement::Copy(IndexShift::new(0, 1)), vec![], vec![IndexShift::new(0, 1)]),
+            MovementRule::new(Movement::Copy(IndexShift::new(-1, -1)), vec![], vec![IndexShift::new(-1, -1)]),
+            MovementRule::new(Movement::Copy(IndexShift::new(-1, 0)), vec![], vec![IndexShift::new(-1, 0)]),
+            MovementRule::new(Movement::Copy(IndexShift::new(-1, 1)), vec![], vec![IndexShift::new(-1, 1)]),
+            MovementRule::new(Movement::Copy(IndexShift::new(1, -1)), vec![], vec![IndexShift::new(1, -1)]),
+            MovementRule::new(Movement::Copy(IndexShift::new(1, 0)), vec![], vec![IndexShift::new(1, 0)]),
+            MovementRule::new(Movement::Copy(IndexShift::new(1, 1)), vec![], vec![IndexShift::new(1, 1)]),
+        ]),
+        Material::new(4, "Acidic sand", "Key5", 0xF76E11, vec![
+            MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
+            MovementRule::new(Movement::Move(IndexShift::new(0, -1)), vec![], vec![IndexShift::new(0, -1)]),
+            MovementRule::new(Movement::Move(IndexShift::new(0, 1)), vec![], vec![IndexShift::new(0, 1)]),
+            MovementRule::new(Movement::Move(IndexShift::new(-1, -1)), vec![], vec![IndexShift::new(-1, -1)]),
+            MovementRule::new(Movement::Move(IndexShift::new(-1, 0)), vec![], vec![IndexShift::new(-1, 0)]),
+            MovementRule::new(Movement::Move(IndexShift::new(-1, 1)), vec![], vec![IndexShift::new(-1, 1)]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![], vec![IndexShift::new(1, -1)]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![], vec![IndexShift::new(1, 0)]),
+            MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![], vec![IndexShift::new(1, 1)]),
         ]),
     ]);
 
