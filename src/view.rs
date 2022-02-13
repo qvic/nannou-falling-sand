@@ -1,7 +1,6 @@
 use std::cmp::min;
 use std::ops::Div;
 
-use nannou::color::rgb_u32;
 use nannou::prelude::*;
 
 use crate::{MaterialColor, MaterialId, Materials, Simulation};

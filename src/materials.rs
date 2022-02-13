@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Copy, Clone)]
@@ -58,13 +57,13 @@ impl Material {
 #[derive(Serialize, Deserialize)]
 pub struct MovementRule {
     pub movement: Movement,
-    pub empty: Vec<IndexShift>,
-    pub occupied: Vec<IndexShift>,
+    pub if_empty: Vec<IndexShift>,
+    pub if_occupied: Vec<IndexShift>,
 }
 
 impl MovementRule {
-    pub fn new(movement: Movement, empty: Vec<IndexShift>, occupied: Vec<IndexShift>) -> Self {
-        Self { movement, empty, occupied }
+    pub fn new(movement: Movement, if_empty: Vec<IndexShift>, if_occupied: Vec<IndexShift>) -> Self {
+        Self { movement, if_empty, if_occupied }
     }
 }
 
@@ -89,14 +88,13 @@ impl IndexShift {
 
 #[derive(Serialize, Deserialize)]
 pub struct Materials {
-    map: HashMap<MaterialId, Material>,
+    materials: Vec<Material>,
     pub background: MaterialColor,
 }
 
 impl Materials {
-    pub fn new(background: MaterialColor, list: Vec<Material>) -> Self {
-        assert_ne!(list.len(), 0, "At least one material should be added");
-        Self { background, map: list.into_iter().map(|m| (m.id, m)).collect() }
+    pub fn new(background: MaterialColor, materials: Vec<Material>) -> Self {
+        Self { background, materials }
     }
 
     pub fn get_color(&self, cell_value: Option<MaterialId>) -> MaterialColor {
@@ -118,15 +116,13 @@ impl Materials {
     }
 
     fn get_by_id(&self, id: MaterialId) -> &Material {
-        self.map.get(&id).expect("Could not find material for given id")
+        self.materials.iter()
+            .find(|&m| m.id == id).expect("Could not find material for given id")
     }
 
     pub fn get_id_by_key(&self, key: &str) -> Option<MaterialId> {
-        for x in self.map.iter() {
-            if x.1.key == key {
-                return Some(x.0.clone());
-            }
-        }
-        None
+        self.materials.iter()
+            .find(|&m| m.key == key)
+            .map(|m| m.id)
     }
 }

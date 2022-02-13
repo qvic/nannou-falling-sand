@@ -7,8 +7,6 @@ use nannou::winit::event::VirtualKeyCode;
 
 use crate::{
     game::Simulation,
-    materials::IndexShift,
-    materials::Material,
     materials::MaterialId,
     materials::Materials,
     materials::Movement,
@@ -22,6 +20,8 @@ mod materials;
 mod view;
 
 const WINDOW_TITLE: &'static str = "Falling sand";
+
+const CONFIG_FILE: &'static str = "materials.json";
 
 const WINDOW_WIDTH_PX: u32 = 800;
 const WINDOW_HEIGHT_PX: u32 = 835;
@@ -55,62 +55,23 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let file = File::open("materials.json")
-        .expect("Unable to open configuration file 'materials.json'");
-    let materials: Materials = serde_json::from_reader(file)
-        .expect("Unable to parse configuration file 'materials.json'");
-
-    // let materials = Materials::new(MaterialColor::new(BACKGROUND), vec![
-    //     Material::new(0, "Sand", "Key1", MaterialColor::new(0x2EB086), vec![
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
-    //     ]),
-    //     Material::new(1, "Water", "Key2", MaterialColor::new(0x2666CF), vec![
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(0, -1)), vec![IndexShift::new(0, -1)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(0, 1)), vec![IndexShift::new(0, 1)], vec![]),
-    //     ]),
-    //     Material::new(2, "Wall", "Key3", MaterialColor::new(0xB8405E), vec![]),
-    //     Material::new(3, "Plague", "Key4", MaterialColor::new(0x8A39E1), vec![
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
-    //         MovementRule::new(Movement::Copy(IndexShift::new(0, -1)), vec![], vec![IndexShift::new(0, -1)]),
-    //         MovementRule::new(Movement::Copy(IndexShift::new(0, 1)), vec![], vec![IndexShift::new(0, 1)]),
-    //         MovementRule::new(Movement::Copy(IndexShift::new(-1, 0)), vec![], vec![IndexShift::new(-1, 0)]),
-    //         MovementRule::new(Movement::Copy(IndexShift::new(-1, -1)), vec![], vec![IndexShift::new(-1, -1)]),
-    //         MovementRule::new(Movement::Copy(IndexShift::new(-1, 1)), vec![], vec![IndexShift::new(-1, 1)]),
-    //         MovementRule::new(Movement::Copy(IndexShift::new(1, 0)), vec![], vec![IndexShift::new(1, 0)]),
-    //         MovementRule::new(Movement::Copy(IndexShift::new(1, -1)), vec![], vec![IndexShift::new(1, -1)]),
-    //         MovementRule::new(Movement::Copy(IndexShift::new(1, 1)), vec![], vec![IndexShift::new(1, 1)]),
-    //     ]),
-    //     Material::new(4, "Acidic sand", "Key5", MaterialColor::new(0xF76E11), vec![
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![IndexShift::new(1, 0)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![IndexShift::new(1, -1)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![IndexShift::new(1, 1)], vec![]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, 0)), vec![], vec![IndexShift::new(1, 0)]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, -1)), vec![], vec![IndexShift::new(1, -1)]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(1, 1)), vec![], vec![IndexShift::new(1, 1)]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(-1, 0)), vec![], vec![IndexShift::new(-1, 0)]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(-1, -1)), vec![], vec![IndexShift::new(-1, -1)]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(-1, 1)), vec![], vec![IndexShift::new(-1, 1)]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(0, -1)), vec![], vec![IndexShift::new(0, -1)]),
-    //         MovementRule::new(Movement::Move(IndexShift::new(0, 1)), vec![], vec![IndexShift::new(0, 1)]),
-    //     ]),
-    // ]);
-
-    // println!("{}", serde_json::to_string_pretty(&materials).unwrap());
-
     let grid_bounds = app.window_rect().pad_top(TOP_BAR_PAD);
+
+    let materials = read_materials();
 
     Model {
         fps: 0.0,
         brush: Brush::new(MOUSE_SPAWN_RADIUS),
         game: GameView::new(GRID_WIDTH_CELLS, GRID_HEIGHT_CELLS, grid_bounds, materials),
     }
+}
+
+fn read_materials() -> Materials {
+    let file = File::open(CONFIG_FILE)
+        .expect("Unable to open configuration file 'materials.json'");
+
+    return serde_json::from_reader(file)
+        .expect("Unable to parse configuration file 'materials.json'");
 }
 
 fn event(_app: &App, model: &mut Model, event: WindowEvent) {

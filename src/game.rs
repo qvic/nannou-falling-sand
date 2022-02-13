@@ -85,8 +85,8 @@ impl Simulation {
     }
 
     fn is_matching_rule(&self, rule: &MovementRule, row: i64, column: i64, value: MaterialId) -> bool {
-        let empty_satisfied = rule.empty.iter().all(|i| self.is_empty(row + i.row, column + i.column));
-        let occupied_satisfied = rule.occupied.iter().all(|i| self.is_occupied(row + i.row, column + i.column, value));
+        let empty_satisfied = rule.if_empty.iter().all(|i| self.is_empty(row + i.row, column + i.column));
+        let occupied_satisfied = rule.if_occupied.iter().all(|i| self.is_occupied(row + i.row, column + i.column, value));
 
         empty_satisfied && occupied_satisfied
     }
