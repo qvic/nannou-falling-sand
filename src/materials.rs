@@ -14,7 +14,7 @@ impl MaterialColor {
         let b: u8 = (hex & 0xFF) as u8;
         let g: u8 = ((hex >> 8) & 0xFF) as u8;
         let r: u8 = ((hex >> 16) & 0xFF) as u8;
-        Self {r, g, b}
+        Self { r, g, b }
     }
 }
 
@@ -71,7 +71,7 @@ impl MovementRule {
 pub enum Movement {
     Stay,
     Move(IndexShift),
-    Copy(IndexShift)
+    Copy(IndexShift),
 }
 
 #[derive(Copy, Clone, Serialize, Deserialize)]
@@ -116,8 +116,14 @@ impl Materials {
     }
 
     fn get_by_id(&self, id: MaterialId) -> &Material {
-        self.materials.iter()
-            .find(|&m| m.id == id).expect("Could not find material for given id")
+        let material = self.materials.get(id.0 as usize);
+        if material.is_some() && material.unwrap().id == id {
+            material.unwrap()
+        } else {
+            self.materials.iter()
+                .find(|&m| m.id == id).expect("Could not find material for given id")
+        }
+
     }
 
     pub fn get_id_by_key(&self, key: &str) -> Option<MaterialId> {
