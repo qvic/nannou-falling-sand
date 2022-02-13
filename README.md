@@ -1,6 +1,7 @@
 # Falling sand game
+![App preview](https://user-images.githubusercontent.com/8373424/153779250-0a88f248-4b44-4f1c-aa6b-4a6903eefd54.png)
 
-Created with [Nannou](https://github.com/nannou-org/nannou)
+Created with [Nannou](https://github.com/nannou-org/nannou).
 
 ### Usage
 
