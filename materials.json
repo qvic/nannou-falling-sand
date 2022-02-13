@@ -1,8 +1,11 @@
 {
+  "background": "EEE6CE",
   "materials": [
     {
       "id": 0,
       "name": "Sand",
+      "color": "2EB086",
+      "key": "Key1",
       "rules": [
         {
           "movement": {
@@ -49,13 +52,13 @@
           ],
           "if_occupied": []
         }
-      ],
-      "color": "2EB086",
-      "key": "Key1"
+      ]
     },
     {
       "id": 1,
       "name": "Water",
+      "color": "2666CF",
+      "key": "Key2",
       "rules": [
         {
           "movement": {
@@ -192,20 +195,20 @@
           ],
           "if_occupied": []
         }
-      ],
-      "color": "2666CF",
-      "key": "Key2"
+      ]
     },
     {
       "id": 2,
       "name": "Wall",
-      "rules": [],
       "color": "B8405E",
-      "key": "Key3"
+      "key": "Key3",
+      "rules": []
     },
     {
       "id": 3,
       "name": "Plague",
+      "color": "8A39E1",
+      "key": "Key4",
       "rules": [
         {
           "movement": {
@@ -372,13 +375,13 @@
             }
           ]
         }
-      ],
-      "color": "8A39E1",
-      "key": "Key4"
+      ]
     },
     {
       "id": 4,
       "name": "Acidic sand",
+      "color": "F76E11",
+      "key": "Key5",
       "rules": [
         {
           "movement": {
@@ -545,10 +548,7 @@
             }
           ]
         }
-      ],
-      "color": "F76E11",
-      "key": "Key5"
+      ]
     }
-  ],
-  "background": "EEE6CE"
+  ]
 }
