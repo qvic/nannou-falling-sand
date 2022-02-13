@@ -48,23 +48,11 @@ pub struct Material {
     pub key: String,
 }
 
-impl Material {
-    pub fn new(id: u8, name: &str, key: &str, color: MaterialColor, rules: Vec<MovementRule>) -> Self {
-        Self { id: MaterialId(id), name: String::from(name), key: String::from(key), color, rules }
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct MovementRule {
     pub movement: Movement,
     pub if_empty: Vec<IndexShift>,
     pub if_occupied: Vec<IndexShift>,
-}
-
-impl MovementRule {
-    pub fn new(movement: Movement, if_empty: Vec<IndexShift>, if_occupied: Vec<IndexShift>) -> Self {
-        Self { movement, if_empty, if_occupied }
-    }
 }
 
 #[derive(Copy, Clone, Serialize, Deserialize)]
@@ -80,12 +68,6 @@ pub struct IndexShift {
     pub column: i64,
 }
 
-impl IndexShift {
-    pub fn new(delta_row: i64, delta_column: i64) -> Self {
-        Self { row: delta_row, column: delta_column }
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct Materials {
     materials: Vec<Material>,
@@ -93,10 +75,6 @@ pub struct Materials {
 }
 
 impl Materials {
-    pub fn new(background: MaterialColor, materials: Vec<Material>) -> Self {
-        Self { background, materials }
-    }
-
     pub fn get_color(&self, cell_value: Option<MaterialId>) -> MaterialColor {
         match cell_value {
             Some(id) => self.get_by_id(id).color,
