@@ -105,6 +105,66 @@
         {
           "movement": {
             "Move": {
+              "row": 1,
+              "column": -2
+            }
+          },
+          "if_empty": [
+            {
+              "row": 1,
+              "column": -2
+            }
+          ],
+          "if_occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 2
+            }
+          },
+          "if_empty": [
+            {
+              "row": 1,
+              "column": 2
+            }
+          ],
+          "if_occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": -3
+            }
+          },
+          "if_empty": [
+            {
+              "row": 1,
+              "column": -3
+            }
+          ],
+          "if_occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 3
+            }
+          },
+          "if_empty": [
+            {
+              "row": 1,
+              "column": 3
+            }
+          ],
+          "if_occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
               "row": 0,
               "column": -1
             }
