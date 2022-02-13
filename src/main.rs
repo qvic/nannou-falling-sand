@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::ops::Add;
 
-use nannou::color::rgb_u32;
 use nannou::prelude::*;
 use nannou::winit::event::VirtualKeyCode;
 
@@ -31,8 +30,6 @@ const GRID_HEIGHT_CELLS: usize = 200;
 
 const MOUSE_SPAWN_RADIUS: u8 = 5;
 
-const BACKGROUND: u32 = 0xEEE6CE;
-
 const REDRAW_FPS_FRAMES: u64 = 16;
 
 const TOP_BAR_PAD: f32 = 35.0;
@@ -45,19 +42,19 @@ fn main() {
 }
 
 fn model(app: &App) -> Model {
+    let materials = read_materials();
+
     app.new_window()
         .title(WINDOW_TITLE)
         .size(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX)
         .resizable(false)
-        .clear_color(rgb_u32(BACKGROUND))
+        .clear_color(Into::<Rgb8>::into(materials.background))
         .view(view)
         .event(event)
         .build()
         .unwrap();
 
     let grid_bounds = app.window_rect().pad_top(TOP_BAR_PAD);
-
-    let materials = read_materials();
 
     Model {
         fps: 0.0,
