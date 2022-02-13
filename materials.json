@@ -1,0 +1,494 @@
+{
+  "map": {
+    "2": {
+      "id": 2,
+      "name": "Wall",
+      "rules": [],
+      "color": "B8405E",
+      "key": "Key3"
+    },
+    "3": {
+      "id": 3,
+      "name": "Plague",
+      "rules": [
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 0
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": 0
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": -1
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": -1
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 1
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": 1
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Copy": {
+              "row": 0,
+              "column": -1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": 0,
+              "column": -1
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Copy": {
+              "row": 0,
+              "column": 1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": 0,
+              "column": 1
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Copy": {
+              "row": -1,
+              "column": 0
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": -1,
+              "column": 0
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Copy": {
+              "row": -1,
+              "column": -1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": -1,
+              "column": -1
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Copy": {
+              "row": -1,
+              "column": 1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": -1,
+              "column": 1
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Copy": {
+              "row": 1,
+              "column": 0
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": 1,
+              "column": 0
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Copy": {
+              "row": 1,
+              "column": -1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": 1,
+              "column": -1
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Copy": {
+              "row": 1,
+              "column": 1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": 1,
+              "column": 1
+            }
+          ]
+        }
+      ],
+      "color": "8A39E1",
+      "key": "Key4"
+    },
+    "1": {
+      "id": 1,
+      "name": "Water",
+      "rules": [
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 0
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": 0
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": -1
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": -1
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 1
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": 1
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 0,
+              "column": -1
+            }
+          },
+          "empty": [
+            {
+              "row": 0,
+              "column": -1
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 0,
+              "column": 1
+            }
+          },
+          "empty": [
+            {
+              "row": 0,
+              "column": 1
+            }
+          ],
+          "occupied": []
+        }
+      ],
+      "color": "2666CF",
+      "key": "Key2"
+    },
+    "0": {
+      "id": 0,
+      "name": "Sand",
+      "rules": [
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 0
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": 0
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": -1
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": -1
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 1
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": 1
+            }
+          ],
+          "occupied": []
+        }
+      ],
+      "color": "2EB086",
+      "key": "Key1"
+    },
+    "4": {
+      "id": 4,
+      "name": "Acidic sand",
+      "rules": [
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 0
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": 0
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": -1
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": -1
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 1
+            }
+          },
+          "empty": [
+            {
+              "row": 1,
+              "column": 1
+            }
+          ],
+          "occupied": []
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 0
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": 1,
+              "column": 0
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": -1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": 1,
+              "column": -1
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 1,
+              "column": 1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": 1,
+              "column": 1
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": -1,
+              "column": 0
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": -1,
+              "column": 0
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": -1,
+              "column": -1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": -1,
+              "column": -1
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": -1,
+              "column": 1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": -1,
+              "column": 1
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 0,
+              "column": -1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": 0,
+              "column": -1
+            }
+          ]
+        },
+        {
+          "movement": {
+            "Move": {
+              "row": 0,
+              "column": 1
+            }
+          },
+          "empty": [],
+          "occupied": [
+            {
+              "row": 0,
+              "column": 1
+            }
+          ]
+        }
+      ],
+      "color": "F76E11",
+      "key": "Key5"
+    }
+  },
+  "background": "EEE6CE"
+}

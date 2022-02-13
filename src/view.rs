@@ -1,8 +1,16 @@
 use std::cmp::min;
 use std::ops::Div;
+
 use nannou::color::rgb_u32;
 use nannou::prelude::*;
-use crate::{MaterialId, Materials, Simulation};
+
+use crate::{MaterialColor, MaterialId, Materials, Simulation};
+
+impl Into<Rgb8> for MaterialColor {
+    fn into(self) -> Rgb8 {
+        Rgb8::new(self.r, self.g, self.b)
+    }
+}
 
 pub struct GameView {
     simulation: Simulation,
@@ -50,11 +58,11 @@ impl GameView {
         }
     }
 
-    fn draw_cell(draw: &Draw, x: f32, y: f32, w: f32, h: f32, color: u32) {
+    fn draw_cell(draw: &Draw, x: f32, y: f32, w: f32, h: f32, color: MaterialColor) {
         draw.rect()
             .x_y(x, y)
             .w_h(w, h)
-            .color(rgb_u32(color));
+            .color(Into::<Rgb8>::into(color));
     }
 
     pub fn spawn(&mut self, mouse: Vec2, radius: u8, material: Option<MaterialId>) {
