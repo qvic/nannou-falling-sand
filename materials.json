@@ -1,10 +1,10 @@
 {
-  "background": "FDEFF4",
+  "background": "EEE6CE",
   "view_width_px": 800,
   "view_height_px": 800,
-  "grid_rows":  200,
+  "grid_rows": 200,
   "grid_columns": 200,
-  "brush_radius":  4,
+  "brush_radius": 4,
   "materials": [
     {
       "id": 0,
@@ -552,6 +552,34 @@
               "column": 1
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Vertical line fill",
+      "color": "54BAB9",
+      "key": "Key6",
+      "rules": [
+        {
+          "movement": {
+            "Copy": {
+              "row": 1,
+              "column": 0
+            }
+          },
+          "if_empty": [],
+          "if_occupied": []
+        },
+        {
+          "movement": {
+            "Copy": {
+              "row": -1,
+              "column": 0
+            }
+          },
+          "if_empty": [],
+          "if_occupied": []
         }
       ]
     }
