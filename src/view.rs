@@ -86,4 +86,12 @@ impl GameView {
             }
         }
     }
+
+    pub fn clear(&mut self) {
+        for i in 0..self.simulation.height {
+            for j in 0..self.simulation.width {
+                self.simulation.set(i, j, None);
+            }
+        }
+    }
 }

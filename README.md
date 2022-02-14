@@ -5,13 +5,17 @@ Created with [Nannou](https://github.com/nannou-org/nannou).
 
 ### Usage
 
-Left click to spawn cells, right click to enable eraser. Switch materials with keyboard. The defaults are:
+Left click to spawn cells, right click to enable eraser. Clear screen with 'C'. 
+Default buttons for switching materials are:
 
 - **Sand** - Key 1
 - **Water** - Key 2
 - **Wall** - Key 3
 - **Plague** - Key 4
 - **Acidic sand** - Key 5
+- **Vertical line fill** - Key 6
+
+This can be changed in config file, see `"key"` field.
 
 ### Game materials
 

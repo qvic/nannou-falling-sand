@@ -76,6 +76,12 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
         MouseReleased(_) => {
             model.brush.active = false;
         }
+        KeyPressed(VirtualKeyCode::C) => {
+            model.brush.clear = true;
+        }
+        KeyReleased(VirtualKeyCode::C) => {
+            model.brush.clear = false;
+        }
         KeyPressed(key) => {
             let materials = model.game.materials();
             if let Some(material_id) = materials.get_id_by_key(resolve_key_name(key).as_str()) {
@@ -94,6 +100,10 @@ fn update(app: &App, model: &mut Model, update: Update) {
     model.fps = 1000.0 / update.since_last.as_millis() as f64;
 
     model.game.prepare();
+
+    if model.brush.clear {
+        model.game.clear();
+    }
 
     if model.brush.active {
         model.game.spawn(app.mouse.position(), model.brush.radius, model.brush.fill);
@@ -126,11 +136,12 @@ struct Brush {
     active: bool,
     radius: u8,
     fill: Option<MaterialId>,
+    clear: bool,
 }
 
 impl Brush {
     pub fn new(radius: u8) -> Self {
-        Self { active: false, radius, fill: Some(MaterialId(0)) }
+        Self { active: false, radius, fill: Some(MaterialId(0)), clear: false }
     }
 }
 
