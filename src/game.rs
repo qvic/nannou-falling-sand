@@ -1,9 +1,10 @@
 use crate::{
-    MovementRule,
-    Movement,
+    MaterialId,
     Materials,
-    MaterialId
+    Movement,
+    MovementRule,
 };
+use crate::materials::IndexShift;
 
 #[derive(Copy, Clone)]
 pub struct Cell {
@@ -18,6 +19,13 @@ pub struct Simulation {
     pub materials: Materials,
 }
 
+#[derive(Eq, PartialEq)]
+pub enum CellStatus {
+    Empty,
+    Occupied(MaterialId),
+    Inaccessible,
+}
+
 impl Simulation {
     pub fn new(width: usize, height: usize, materials: Materials) -> Self {
         let grid = vec![Cell { value: None, updated: false }; width * height];
@@ -26,17 +34,30 @@ impl Simulation {
     }
 
     pub fn set(&mut self, row: usize, column: usize, value: Option<MaterialId>) {
-        if !self.in_bounds(row as i64, column as i64) { panic!("Tried to set a cell out of bounds"); }
-
-        let cell = &mut self.grid[row * self.width + column];
-        cell.value = value;
-        cell.updated = true;
+        self.grid.get_mut(row * self.width + column)
+            .filter(|cell| !cell.updated)
+            .map(|cell| {
+                cell.value = value;
+                cell.updated = true;
+            });
     }
 
     pub fn get(&self, row: usize, column: usize) -> &Cell {
-        if !self.in_bounds(row as i64, column as i64) { panic!("Tried to get a cell out of bounds"); }
+        self.grid.get(row * self.width + column).expect("Tried to get a cell out of bounds")
+    }
 
-        &self.grid[row * self.width + column]
+    pub fn get_status(&self, row: i64, column: i64) -> CellStatus {
+        if !self.in_bounds(row, column) { return CellStatus::Inaccessible; }
+
+        self.grid.get((row as usize) * self.width + (column as usize))
+            .map(|cell| if cell.updated {
+                CellStatus::Inaccessible
+            } else if let Some(value) = cell.value {
+                CellStatus::Occupied(value)
+            } else {
+                CellStatus::Empty
+            })
+            .unwrap()
     }
 
     pub fn reset(&mut self) {
@@ -82,6 +103,7 @@ impl Simulation {
 
         rules.iter().find(|rule| self.is_matching_rule(rule, row_sgn, column_sgn, value))
             .map(|rule| rule.movement)
+            .filter(|movement| self.is_valid_movement(row_sgn, column_sgn, movement))
     }
 
     fn is_matching_rule(&self, rule: &MovementRule, row: i64, column: i64, value: MaterialId) -> bool {
@@ -92,21 +114,28 @@ impl Simulation {
     }
 
     fn is_empty(&self, row: i64, column: i64) -> bool {
-        if self.in_bounds(row, column) {
-            let cell = self.get(row as usize, column as usize);
-            !cell.updated && cell.value.is_none()
+        self.get_status(row, column) == CellStatus::Empty
+    }
+
+    fn is_occupied(&self, row: i64, column: i64, relative_to: MaterialId) -> bool {
+        let status = self.get_status(row, column);
+        if let CellStatus::Occupied(material) = status {
+            relative_to != material
         } else {
             false
         }
     }
 
-    fn is_occupied(&self, row: i64, column: i64, current_value: MaterialId) -> bool {
-        if self.in_bounds(row, column) {
-            let cell = self.get(row as usize, column as usize);
-            !cell.updated && cell.value.filter(|&v| v != current_value).is_some()
-        } else {
-            false
+    fn is_valid_movement(&self, row: i64, column: i64, movement: &Movement) -> bool {
+        match movement {
+            Movement::Move(shift) => { self.is_valid_shift(row, column, shift) }
+            Movement::Copy(shift) => { self.is_valid_shift(row, column, shift) }
+            Movement::Stay => { true }
         }
+    }
+
+    fn is_valid_shift(&self, row: i64, column: i64, shift: &IndexShift) -> bool {
+        self.get_status(row + shift.row, column + shift.column) != CellStatus::Inaccessible
     }
 
     fn in_bounds(&self, row: i64, column: i64) -> bool {
