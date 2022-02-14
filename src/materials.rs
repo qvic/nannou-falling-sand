@@ -72,6 +72,11 @@ pub struct IndexShift {
 pub struct Materials {
     materials: Vec<Material>,
     pub background: MaterialColor,
+    pub view_width_px: u32,
+    pub view_height_px: u32,
+    pub grid_rows: u32,
+    pub grid_columns: u32,
+    pub brush_radius: u8,
 }
 
 impl Materials {

@@ -1,5 +1,10 @@
 {
-  "background": "EEE6CE",
+  "background": "FDEFF4",
+  "view_width_px": 800,
+  "view_height_px": 800,
+  "grid_rows":  200,
+  "grid_columns": 200,
+  "brush_radius":  4,
   "materials": [
     {
       "id": 0,

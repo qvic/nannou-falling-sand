@@ -22,14 +22,6 @@ const WINDOW_TITLE: &'static str = "Falling sand";
 
 const CONFIG_FILE: &'static str = "materials.json";
 
-const WINDOW_WIDTH_PX: u32 = 800;
-const WINDOW_HEIGHT_PX: u32 = 835;
-
-const GRID_WIDTH_CELLS: usize = 200;
-const GRID_HEIGHT_CELLS: usize = 200;
-
-const MOUSE_SPAWN_RADIUS: u8 = 5;
-
 const REDRAW_FPS_FRAMES: u64 = 16;
 
 const TOP_BAR_PAD: f32 = 35.0;
@@ -46,7 +38,7 @@ fn model(app: &App) -> Model {
 
     app.new_window()
         .title(WINDOW_TITLE)
-        .size(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX)
+        .size(materials.view_width_px, materials.view_height_px + TOP_BAR_PAD as u32)
         .resizable(false)
         .clear_color(Into::<Rgb8>::into(materials.background))
         .view(view)
@@ -58,8 +50,10 @@ fn model(app: &App) -> Model {
 
     Model {
         fps: 0.0,
-        brush: Brush::new(MOUSE_SPAWN_RADIUS),
-        game: GameView::new(GRID_WIDTH_CELLS, GRID_HEIGHT_CELLS, grid_bounds, materials),
+        brush: Brush::new(materials.brush_radius),
+        game: GameView::new(materials.grid_columns as usize,
+                            materials.grid_rows as usize,
+                            grid_bounds, materials),
     }
 }
 
